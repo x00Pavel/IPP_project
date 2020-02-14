@@ -1,5 +1,5 @@
 PARSER=parse.php
-SRC=for_test
+TRASH=./tests/for_test
 
 test:
-	cat ${SRC} | php ${PARSER}
+	cat ${TRASH} | php7.2 ${PARSER}
