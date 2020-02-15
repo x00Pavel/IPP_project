@@ -40,6 +40,11 @@ function checkHeader (string $header,bool $beginning){
  */
 function checkArgsCount(string $input_code){
     global $input_code;
+    // Check for comments on line with code
+    if(strpos($input_code, '#')){
+        $input_code = substr($input_code, 0, strpos($input_code, '#'));
+    }
+    
     $input_code = array_values(array_filter(preg_split('/\s+/', $input_code)));
     $size = count($input_code);
     if ($size <= 4){
@@ -53,6 +58,37 @@ function checkArgsCount(string $input_code){
         }
         fwrite(STDERR, "\n");
         return (23); 
+    }
+}
+
+class Writer extends XMLWriter{
+    public function init(){
+        // $this = new XMLWriter();
+        $this->openMemory();
+        $this->startDocument('1.0', 'UTF-8');
+        $this->setIndent(true);
+        $this->setIndentString('    ');
+    }
+    
+    public function addElement(string $element, array $attributes){
+        $this->startElement($element);
+        foreach ($attributes as $name=>$text){
+            $this->startAttribute($name);
+            $this->text($text);
+            $this->endAttribute();
+        }
+    }
+
+    public function closeElement(){
+        $this->endElement();
+    }
+
+    public function close(){
+        $this->endDocument();
+    }
+    
+    public function show(){
+        echo $this->outputMemory(); 
     }
 }
 
