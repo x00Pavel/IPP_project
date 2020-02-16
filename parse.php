@@ -29,29 +29,72 @@ $commands = array(
 
 $beginning = true;
 $order = 1;
+$stats = false;
+$loc = -1;
+$comments = -1;
+$labels = -1;
+$temp_arr = array();
+$jumps = -1;
 
+$longargs = array("help", "stats::", "loc", "comments", "label", "jumps",);
 // Handling about number of arguments and printing out help massage
-if ($argc >= 2){
-    if ($argc > 2){
-        fwrite(STDERR, "Wrong number of parameters\n");
+$args = getopt("h", $longargs);
+
+if($argc - 1 > count($longargs)){
+    fwrite(STDERR, "Wrong argument of parse.php\n");
+    exit (10);
+}
+
+if(array_key_exists("help",$args)){
+    if(count($args) != 1){
+        fwrite(STDERR, "Parameter --help can't be combined with other parameters\n");
         exit (10);
     }
     else{
-        if($argv[1] == "--help"){
-            fwrite(STDOUT, "Script 'parse.php' read from standard input code in IPPcode20 language,");
-            fwrite(STDOUT, "held lexical and syntax control on input code.\n");
-            fwrite(STDOUT, "Then write down processed code in XML format to standard output based on specifications\n");
-            exit (0);
-        }
-        else{
-            fwrite(STDERR, "Wrong argument '".$argv[1]."', here can be only argument '--help'\n");
-            exit (10);
-        }
-    }    
+        fwrite(STDOUT, "Script 'parse.php' read from standard input code in IPPcode20 language,");
+        fwrite(STDOUT, "held lexical and syntax control on input code.\n");
+        fwrite(STDOUT, "Then write down processed code in XML format to standard output based on specifications\n");
+        exit (0);
+    }
 }
 
-// Create XML instance and write down default info
+if(array_key_exists("stats", $args)){
+    if($args["stats"] != null && file_exists($args["stats"])){
+        if(is_writable($args["stats"])){
+            $stats = $args["stats"];
+        }
+        else{
+            fwrite(STDERR, "File ".$args["stats"]." is not writable\n");
+            exit(11);
+        }
+    }
+    else{
+        fwrite(STDERR, "File ".$args["stats"]." does not exist\n");
+        exit(11);
+    }
+}
 
+$loc = checkArgs("loc",$args,$stats);
+if($loc != 0){
+    exit($loc);
+}
+$comments = checkArgs("comments",$args,$stats);
+if($comments != 0){
+    exit($comments);
+}
+$labels = checkArgs("labels",$args,$stats);
+if($labels != 0){
+    exit($labels);
+}
+
+$jumps = checkArgs("jumps",$args,$stats);
+if($jumps != 0){
+    exit($jumps);
+}
+
+
+
+// Create XML instance and write down default info
 $initial = new XMLWriter();
 $xw = new Writer();
 $xw->init();
@@ -62,6 +105,9 @@ $xw->addElement('program', array('language'=>'IPPcode20'));
 while ($input_code = fgets(STDIN)){
     switch ($input_code[0]){
         case "#":
+            if($comments != -1){
+                $comments++;
+            }
             continue;
         case "\n":
             continue;
@@ -72,7 +118,7 @@ while ($input_code = fgets(STDIN)){
             }
             continue;
         default:
-            $rc = checkArgsCount($input_code);
+            $rc = checkArgsCount($input_code, $comments);
             if($rc != 0){
                 exit ($rc);
             }
@@ -83,59 +129,47 @@ while ($input_code = fgets(STDIN)){
                 exit (22);
             }
             else{
-                // TODO 
                 $xw->addElement('instruction', array('order'=>$order, 'opcode'=>strtoupper($input_code[0])));
-                // $arg_num = $commands[$input_code[0]];
                 $arg_num = $commands[strtoupper($input_code[0])];
                 if($arg_num != 0){
                     for ($i = 1; $i <= $arg_num; $i++){
                         // Is it a variable or constant?
                         if(preg_match('/\s*\S*@\S*/',$input_code[$i])){
-                            $parts = explode("@",$input_code[$i],2);
-
-                            switch (strtolower($parts[0])){
-                                case "gf":case "tf":case "lf":
-                                    $xw->addElement('arg'.$i, array('type'=>'var'));
-                                    $xw->text(strtoupper($parts[0])."@".$parts[1]);
-                                    $xw->closeElement();
-                                    continue;
-                                case "int":
-                                case "bool":
-                                    $parts[1] = strtolower($parts[1]);
-                                case "string": // For string converting of '<','>' and '&' is automatically
-                                case "nil":
-                                case "type":
-                                    $xw->addElement('arg'.$i, array('type'=>$parts[0]));
-                                    $xw->text($parts[1]);
-                                    $xw->closeElement();                               
-                                }
+                            var_const($input_code, $i, $xw);
                         }
                         // Is it a label?
                         else{
-                            if( strtolower($input_code[0]) == 'label'    || 
-                                strtolower($input_code[0]) == 'jump'     ||
-                                strtolower($input_code[0]) == 'jumpifeq' ||
-                                strtolower($input_code[0]) == 'jumpifneq'||
-                                strtolower($input_code[0]) == 'call'){
-                                    $xw->addElement('arg'.$i, array('type'=>'label'));
-                            }
-                            else{
-                                $xw->addElement('arg'.$i, array('type'=>'type'));
-                            }
-                            $xw->text($input_code[$i]);
-                            $xw->closeElement();
+                            label_type($input_code, $i, $xw, $jumps, $labels, $temp_arr);
                         }
                     }
                 }
             }
-        // Increment order of command 
-        $order++;
-        // Close element 'instruction'
-        $xw->closeElement();
+            // Increment order of command 
+            $order++;
+            // Close element 'instruction'
+            $xw->closeElement();
     }
-            
+    
     continue;
 } 
+
+if ($stats != false){
+    $file = fopen($stats, "w") or die("unable to open file\n");
+    if($comments){
+        fwrite($file,$comments."\n");
+    }
+    if($loc == 0){
+        $order = $order -1;
+        fwrite($file,$order."\n");
+    }
+    if($labels == 0){
+        fwrite($file,count(array_unique($temp_arr))."\n");
+    }
+    if($jumps != -1){        
+        fwrite($file,count(array_unique($temp_arr))."\n");
+    }
+    fclose($file);
+}
 
 $xw->closeElement();
 $xw->close();
