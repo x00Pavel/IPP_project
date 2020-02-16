@@ -38,11 +38,15 @@ function checkHeader (string $header,bool $beginning){
  * \return 0 in success
  * \return 23 in case of count of arguments
  */
-function checkArgsCount(string $input_code){
+function checkArgsCount(string $input_code, $comments){
     global $input_code;
+    global $comments;
     // Check for comments on line with code
     if(strpos($input_code, '#')){
         $input_code = substr($input_code, 0, strpos($input_code, '#'));
+        if ($comments != -1){
+            $comments++;
+        }
     }
     
     $input_code = array_values(array_filter(preg_split('/\s+/', $input_code)));
@@ -58,6 +62,71 @@ function checkArgsCount(string $input_code){
         }
         fwrite(STDERR, "\n");
         return (23); 
+    }
+}
+
+function checkArgs(string $param, $args, $stats){
+    if(array_key_exists($param,$args)){
+        if($stats != null){
+            return 0;
+        }
+        else{
+            fwrite(STDERR, "Parameter file for statistics is not set(no --stats=file parameter), but used other parameter for collecting them (--".$param.")\n");
+            return 10;
+        }
+    }
+    return false;
+}
+
+function var_const($input_code, $i, $xw){
+    $parts = explode("@",$input_code[$i],2);
+    switch (strtolower($parts[0])){
+        case "gf":case "tf":case "lf":
+            $xw->addElement('arg'.$i, array('type'=>'var'));
+            $xw->text(strtoupper($parts[0])."@".$parts[1]);
+            $xw->closeElement();
+            continue;
+        case "int":
+        case "bool":
+            $parts[1] = strtolower($parts[1]);
+        case "string": // For string converting of '<','>' and '&' is automatically
+        case "nil":
+        case "type":
+            $xw->addElement('arg'.$i, array('type'=>$parts[0]));
+            $xw->text($parts[1]);
+            $xw->closeElement();                               
+        }
+}
+
+function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
+    global $jumps;
+    global $labels;
+    global $temp_arr;
+    switch ($input_code[0]){
+        case 'LABEL':
+            if($label != -1){
+                array_push($temp_arr, $input_code[$i]);
+            }
+            $xw->addElement('arg'.$i, array('type'=>'label'));
+            $xw->text($input_code[$i]);
+            $xw->closeElement();
+            return;
+        case 'JUMP':
+        case 'JUMPIFEQ':
+        case 'JUMPIFNEQ':
+        case 'CALL':
+            if($jumps != -1){
+                $jumps++;
+            }
+            $xw->addElement('arg'.$i, array('type'=>'label'));
+            $xw->text($input_code[$i]);
+            $xw->closeElement();
+            return;
+        default:
+            $xw->addElement('arg'.$i, array('type'=>'type'));
+            $xw->text($input_code[$i]);
+            $xw->closeElement();
+            return;
     }
 }
 
