@@ -9,6 +9,7 @@ $longarms = array(
     "parse-only",
     "int-only",
     "jexamxml:",
+    " "
 );
 
 $parse_only = false;
@@ -20,14 +21,10 @@ $jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
 
 $args = getopt("",$longarms);
 
-// print_r ($argv);
-array_shift($argv);
-foreach ($argv as $param){
-    $param = str_replace("--","",$param);
-    if(!in_array($param, $longarms)){
-        fwrite(STDOUT, "Wrong parameter --".$param."\n");
-        exit (10);
-    }
+// Check if all arguments are valid
+if ($argc -1 > count($args)){
+    fwrite(STDOUT, "Wrong parameter\n");
+    exit (10);
 }
 
 if (array_key_exists("help", $args)){
@@ -71,6 +68,10 @@ if(array_key_exists("recursive", $args)){
 }
 
 if(array_key_exists("parse-script", $args)){
+    if($args["parse-script"] == null){
+        fwrite(STDERR, "You didn't specified any file\n");
+        exit (10);
+    }
     $parse_script = $args["parse-script"];
 }
 
