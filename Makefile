@@ -1,10 +1,26 @@
 PARSER=parse.php
 SRC_PARSE=./tests/parse-only/
 XMLCMP=java -jar ./JExamXML/jexamxml.jar
+YELOW=\033[1;33m
+RED=\033[0;33m
+NC=\033[0m # No Color
+
+make:
+	php7.2 ${PARSER} --stats=stats --comments --loc --labels --jumps <./tests/for_test 
+
 
 test_parse:
+	@echo "${YELOW}--------READ_TEST--------${NC}"
 	php7.2 ${PARSER} <${SRC_PARSE}read_test.src > read_test.my
-	${XMLCMP} read_test.my ${SRC_PARSE}read_test.out diff.my
+	${XMLCMP} read_test.my ${SRC_PARSE}read_test.out read_test_diff.my
+	@echo "${YELOW}--------SIMPLE_TEST--------${NC}"
+	php7.2 ${PARSER} <${SRC_PARSE}simple_tag.src > simple_tag.my
+	${XMLCMP} simple_tag.my ${SRC_PARSE}simple_tag.out simple_tag_diff.my
+	@echo "${YELOW}--------WRITE_TEST--------${NC}"
+	php7.2 ${PARSER} <${SRC_PARSE}write_test.src > write_test.my
+	${XMLCMP} write_test.my ${SRC_PARSE}write_test.out write_test_diff.my
+		
+
 
 errors:
 # TODO markwodn this info
