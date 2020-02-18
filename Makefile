@@ -11,7 +11,7 @@ make:
 
 test_only:
 	php ${TEST} --parse-only --recursive --directory=./tests/parse-only
-	
+
 
 test_parse:
 	@echo "${YELOW}--------READ_TEST--------${NC}"
@@ -26,8 +26,8 @@ test_parse:
 		
 
 clean:
-	rm -r ./tests/parse-only/*.diff 
-	rm -r ./tests/parse-only/*.my
+	rm -r ./tests/parse-only/*.diff*
+	rm -r ./tests/parse-only/*.my*
 
 
 errors:
