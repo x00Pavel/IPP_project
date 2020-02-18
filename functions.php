@@ -78,6 +78,15 @@ function checkArgs(string $param, $args, $stats){
     return false;
 }
 
+/**
+ * \brief Function for handling variables and constants
+ * Also function writes down to XML corresponding text 
+ * 
+ * \param[in] input_code Code of operation
+ * \param[in] i position of current argument
+ * \param[in] xw XML writer
+ *
+ */
 function var_const($input_code, $i, $xw){
     $parts = explode("@",$input_code[$i],2);
     switch (strtolower($parts[0])){
@@ -98,6 +107,18 @@ function var_const($input_code, $i, $xw){
         }
 }
 
+/**
+ * \brief Function for handling labels and types
+ * Also function writes down to XML corresponding text 
+ * 
+ * \param[in] input_code Code of operation
+ * \param[in] i position of current argument
+ * \param[in] xw XML writer
+ * \param[in] jumps Variable for parameter --jumps
+ * \param[in] label Variable for parameter --labels
+ * \param     temp_arr Array for writing down all labels
+ * 
+ */
 function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
     global $jumps;
     global $labels;
@@ -127,6 +148,41 @@ function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
             $xw->text($input_code[$i]);
             $xw->closeElement();
             return;
+    }
+}
+
+/**
+ * \brief Function for checking permissions and if file is exist
+ * 
+ * \param[in] file Path to file or directory
+ * \param[in] stats optional parameter for checking if if file is writable
+ * 
+ * \return In success path to file 
+ * \return Null in any other case
+ */
+function checkFile(string $file, $flag = 0){
+    if($file != null){
+        switch ($flag){
+            case 0:
+                if(is_executable($file)){
+                    return $file;
+                }
+            case 1:
+                if(is_writable($file)){
+                    return $file;
+                }
+            case 2:
+                if(is_readable($file)){
+                    return $file;
+                }
+            default:
+                fwrite(STDERR, "File ".$file." is not executable (in case of stats param, not writable)\n");
+                return null;
+        }
+    }
+    else{
+        fwrite(STDERR, "You didn't specified any file or file does not exist\n");
+        return null;
     }
 }
 

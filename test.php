@@ -1,5 +1,7 @@
 <?php
 
+include 'functions.php';
+
 $longarms = array(
     "help",
     "directory:",
@@ -15,10 +17,16 @@ $longarms = array(
 $parse_only = false;
 $int_only = false;
 $recursive = false;
+$directory = '.';
 $parse_script = './parse.php';
 $int_script = './interpret.py';
-$jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
-
+$jexamxml = null;
+if (shell_exec('pwd') == "/home/xyadlo00/studies/IPP/IPP_project\n"){
+    $jexamxml = './JExamXML/jexamxml.jar';
+}
+else {
+    $jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
+}
 $args = getopt("",$longarms);
 
 // Check if all arguments are valid
@@ -42,6 +50,19 @@ if (array_key_exists("help", $args)){
         exit (0);
     }
 }
+// $dir   = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
+
+if(array_key_exists("directory", $args)){   
+    $directory = checkFile($args["directory"], $dir, 2);
+    if($directory == null){
+        exit (11);
+    }
+    echo " HERE\n";
+}
+
+if(array_key_exists("recursive", $args)){
+    $recursive = true;
+}
 
 if(array_key_exists("parse-only", $args)){
     if(array_key_exists("int-script", $args) || array_key_exists("int-only", $args)){
@@ -63,25 +84,38 @@ if(array_key_exists("int-only", $args)){
     }
 }
 
-if(array_key_exists("recursive", $args)){
-    $recursive = true;
-}
-
 if(array_key_exists("parse-script", $args)){
-    if($args["parse-script"] == null){
-        fwrite(STDERR, "You didn't specified any file\n");
-        exit (10);
+    if($args["parse-script"] != null && file_exists($args["parse-script"])){
+        $parse_script = checkFile($args["parse_script"]);
+        if($parse_script == null){
+            exit (11);
+        }
     }
-    $parse_script = $args["parse-script"];
 }
-
 if(array_key_exists("int-script", $args)){
-    $int_script = $args["int-script"];
+    if($args["int-script"] != null && file_exists($args["int-script"])){
+        $int_script = checkFile($args["int-script"]);
+        if($int_script == null){
+            exit (11);
+        }
+    }
 }
 
 if(array_key_exists("jexamxml", $args)){
-    $jexamxml = $args["jexamxml"];
+    if($args["jexamxml"] != null && file_exists($args["jexamxml"])){
+        $jexamxml = checkFile($args["jexamxml"]);
+        if($jexamxml == null){
+            exit (11);
+        }
+    }
 }
+// if(!$int_only){
+//     shell_exec('php '.$parse_script.' --stats=stats --comments --loc --labels --jumps <./tests/for_test >> read_test.my');
+//     $out = shell_exec('java -jar '.$jexamxml.' read_test.my '.$directory.'/read_test.out read_test_diff.my');
+//     echo $out;
+// }
+
+
 
 
 ?>

@@ -58,19 +58,13 @@ if(array_key_exists("help",$args)){
     }
 }
 
+
+
+
 if(array_key_exists("stats", $args)){
-    if($args["stats"] != null && file_exists($args["stats"])){
-        if(is_writable($args["stats"])){
-            $stats = $args["stats"];
-        }
-        else{
-            fwrite(STDERR, "File ".$args["stats"]." is not writable\n");
-            exit(11);
-        }
-    }
-    else{
-        fwrite(STDERR, "File ".$args["stats"]." does not exist\n");
-        exit(11);
+    $stats = checkFile($args["stats"], 1);
+    if($stats == null){
+        exit (11);
     }
 }
 
