@@ -186,6 +186,29 @@ function checkFile(string $file, $flag = 0){
     }
 }
 
+
+function iterFiles($files){
+    $srcs = array();
+    $outs = array();
+    $rcs  = array();
+    foreach ($files as $file) {
+        $name = $file->getPathname();
+        if(preg_match('/\w*\.src/', $name)){
+            array_push($srcs,$name);
+        }
+        if(preg_match('/\w*\.out/', $name)){
+            array_push($outs,$name);
+        }
+        if(preg_match('/\w*\.rc/', $name)){
+            array_push($rcs,$name);
+        }
+    }
+    sort($srcs,SORT_NATURAL);
+    sort($outs, SORT_NATURAL);
+    sort($rcs, SORT_NATURAL);
+    return array($srcs, $outs, $rcs);
+}
+
 class Writer extends XMLWriter{
     public function init(){
         // $this = new XMLWriter();
