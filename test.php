@@ -121,7 +121,9 @@ for ($i = 1; $i < $argc; $i++){
 }
 fwrite(STDOUT, "</ol>\n");
 
-fwrite(STDOUT,"</body>\n</html>");
+fwrite(STDOUT, "<hr size=5>\n");
+
+
 
 
 if(!$int_only){
@@ -132,34 +134,30 @@ if(!$int_only){
         $dir   = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
         $files = new RecursiveIteratorIterator($dir, RecursiveIteratorIterator::SELF_FIRST);
         list ($srcs, $outs, $rcs) = iterFiles($files);
-
-    }
-    else{
-        $dir = new DirectoryIterator($directory);
-        foreach ($dir as $file) {
-            $name = $file->getFilename();
-            if(preg_match('/\w*\.src/', $name)){
-                array_push($srcs,$name);
-            }
-            if(preg_match('/\w*\.out/', $name)){
-                array_push($outs,$name);
-            }
-            if(preg_match('/\w*\.rc/', $name)){
-                array_push($rcs,$name);
-            }
-        }
         
     }
-    // print_r(array($srcs, $outs, $rcs));
+    else{
+        $files = new DirectoryIterator($directory);
+        list ($srcs, $outs, $rcs) = iterFiles($files);
+    }
+    
     foreach($srcs as $src=>$file){
         shell_exec("php $parse_script --stats=tests/stats --comments --loc --labels --jumps <$file > $file.my");
+        $return_code = shell_exec("echo $?");
         $out = shell_exec("java -jar $jexamxml $file.my ".$outs[$src]." $file.diff");
-        echo $out;
-
+        // print_r (file($rcs[$src],FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES));
+        if(!strpos("$return_code",file_get_contents($rcs[$src], false, NULL,0))){
+            fwrite(STDOUT,"Source file: $file<br/>\n");
+            fwrite(STDOUT,"Reference output file: ".$outs[$src]."\n");
+            fwrite(STDOUT,"<hr size=5>\n");
+            fwrite(STDOUT,"<font color=\"green\">PASED</font>\n");
+            fwrite(STDOUT,"<hr size=5>\n");
+        }
     }
 }
 
 
+fwrite(STDOUT,"</body>\n</html>");
 
 
 ?>
