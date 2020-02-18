@@ -17,7 +17,7 @@ $longarms = array(
 $parse_only = false;
 $int_only = false;
 $recursive = false;
-$directory = '.';
+$directory = './';
 $parse_script = './parse.php';
 $int_script = './interpret.py';
 $jexamxml = null;
@@ -53,11 +53,10 @@ if (array_key_exists("help", $args)){
 // $dir   = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
 
 if(array_key_exists("directory", $args)){   
-    $directory = checkFile($args["directory"], $dir, 2);
+    $directory = checkFile($args["directory"], 2);
     if($directory == null){
         exit (11);
     }
-    echo " HERE\n";
 }
 
 if(array_key_exists("recursive", $args)){
@@ -109,11 +108,56 @@ if(array_key_exists("jexamxml", $args)){
         }
     }
 }
-// if(!$int_only){
-//     shell_exec('php '.$parse_script.' --stats=stats --comments --loc --labels --jumps <./tests/for_test >> read_test.my');
-//     $out = shell_exec('java -jar '.$jexamxml.' read_test.my '.$directory.'/read_test.out read_test_diff.my');
-//     echo $out;
-// }
+
+// $html = fopen('output.html', 'w');
+fwrite(STDOUT,'<html>');
+
+
+fwrite(STDOUT, "<body>\n<h1>Output of testing</h1>\n
+<p>Parameters</p>\n
+<ol>\n");
+for ($i = 1; $i < $argc; $i++){
+    fwrite(STDOUT,"<li>".$argv[$i]."</li>\n");
+}
+fwrite(STDOUT, "</ol>\n");
+
+fwrite(STDOUT,"</body>\n</html>");
+
+
+if(!$int_only){
+    $srcs = array();
+    $outs = array();
+    $rcs  = array();
+    if($recursive){
+        $dir   = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
+        $files = new RecursiveIteratorIterator($dir, RecursiveIteratorIterator::SELF_FIRST);
+        list ($srcs, $outs, $rcs) = iterFiles($files);
+
+    }
+    else{
+        $dir = new DirectoryIterator($directory);
+        foreach ($dir as $file) {
+            $name = $file->getFilename();
+            if(preg_match('/\w*\.src/', $name)){
+                array_push($srcs,$name);
+            }
+            if(preg_match('/\w*\.out/', $name)){
+                array_push($outs,$name);
+            }
+            if(preg_match('/\w*\.rc/', $name)){
+                array_push($rcs,$name);
+            }
+        }
+        
+    }
+    // print_r(array($srcs, $outs, $rcs));
+    foreach($srcs as $src=>$file){
+        shell_exec("php $parse_script --stats=tests/stats --comments --loc --labels --jumps <$file > $file.my");
+        $out = shell_exec("java -jar $jexamxml $file.my ".$outs[$src]." $file.diff");
+        echo $out;
+
+    }
+}
 
 
 
