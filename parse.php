@@ -129,7 +129,10 @@ while ($input_code = fgets(STDIN)){
                     for ($i = 1; $i <= $arg_num; $i++){
                         // Is it a variable or constant?
                         if(preg_match('/\s*\S*@\S*/',$input_code[$i])){
-                            var_const($input_code, $i, $xw);
+                            $rc = var_const($input_code, $i, $xw);
+                            if($rc != 0){
+                                exit ($rc);
+                            }
                         }
                         // Is it a label?
                         else{
