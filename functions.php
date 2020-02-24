@@ -88,9 +88,14 @@ function checkArgs(string $param, $args, $stats){
  *
  */
 function var_const($input_code, $i, $xw){
+    $types = array("string", "int", "bool", "nil", "GF", "LF", "TF"); 
     $parts = explode("@",$input_code[$i],2);
-    switch (strtolower($parts[0])){
-        case "gf":case "tf":case "lf":
+    if(!in_array($parts[0], $types)){
+        fwrite(STDERR,"Wrong type ".$parts[0]."\n");
+        return 23;
+    }
+    switch ($parts[0]){
+        case "GF":case "TF":case "LF":
             $xw->addElement('arg'.$i, array('type'=>'var'));
             $xw->text(strtoupper($parts[0])."@".$parts[1]);
             $xw->closeElement();
@@ -100,11 +105,12 @@ function var_const($input_code, $i, $xw){
             $parts[1] = strtolower($parts[1]);
         case "string": // For string converting of '<','>' and '&' is automatically
         case "nil":
-        case "type":
+        // case "type":
             $xw->addElement('arg'.$i, array('type'=>$parts[0]));
             $xw->text($parts[1]);
             $xw->closeElement();                               
         }
+    return 0;
 }
 
 /**
@@ -123,7 +129,7 @@ function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
     global $jumps;
     global $labels;
     global $temp_arr;
-    switch ($input_code[0]){
+    switch (strtoupper($input_code[0])){
         case 'LABEL':
             if($label != -1){
                 array_push($temp_arr, $input_code[$i]);
@@ -143,7 +149,8 @@ function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
             $xw->text($input_code[$i]);
             $xw->closeElement();
             return;
-        default:
+        // default:
+        case 'READ':
             $xw->addElement('arg'.$i, array('type'=>'type'));
             $xw->text($input_code[$i]);
             $xw->closeElement();
