@@ -1,11 +1,5 @@
 <?php
 
-
-/*
-21 - chybná nebo chybějící hlavička ve zdrojovém kódu zapsaném v IPPcode20;
-22 - neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode20;
-23 - jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode20.
-*/
 include 'functions.php';
 
 $commands = array(
@@ -67,7 +61,6 @@ if(array_key_exists("stats", $args)){
         exit (11);
     }
 }
-
 $loc = checkArgs("loc",$args,$stats);
 if($loc != 0){
     exit($loc);
@@ -151,19 +144,29 @@ while ($input_code = fgets(STDIN)){
 } 
 
 if ($stats != false){
+    array_shift($argv);
     $file = fopen($stats, "w") or die("unable to open file\n");
-    if($comments){
-        fwrite($file,$comments."\n");
-    }
-    if($loc == 0){
-        $order = $order -1;
-        fwrite($file,$order."\n");
-    }
-    if($labels == 0){
-        fwrite($file,count(array_unique($temp_arr))."\n");
-    }
-    if($jumps != -1){        
-        fwrite($file,count(array_unique($temp_arr))."\n");
+    foreach ($argv as $arg){
+        echo $arg.PHP_EOL;
+        if($arg == '--comments'){
+            fwrite($file,$comments."\n");
+        }
+        if($arg == '--loc'){
+            if($loc == 0){
+                $new_order = $order -1;
+                fwrite($file,$new_order."\n");
+            }
+        }
+        if($arg == '--labels'){
+            if($labels == 0){
+                fwrite($file,count(array_unique($temp_arr))."\n");
+            }
+        }
+        if($arg == '--jumps'){
+            if($jumps != -1){        
+                fwrite($file,count(array_unique($temp_arr))."\n");
+            }
+        }
     }
     fclose($file);
 }
