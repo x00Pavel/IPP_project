@@ -7,11 +7,10 @@ RED=\033[0;33m
 NC=\033[0m # No Color
 
 make:
-	php7.2 ${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test 
+	php7.2 ${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
 
 test_only:
-	php ${TEST} --parse-only --recursive --directory=./tests/parse-only
-
+	php ${TEST} --parse-only --recursive --directory=./tests/parse-only > result_test.html
 
 test_parse:
 	@echo "${YELOW}--------READ_TEST--------${NC}"
