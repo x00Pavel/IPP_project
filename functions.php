@@ -1,4 +1,10 @@
 <?php
+/**
+ * \author Pavel Yadlouski (xyadlo00)
+ * \brief File with definition of all functions and classes used in this project
+ * 
+ */
+
 
 /**
  * \brief Function for checking header in file
@@ -65,6 +71,19 @@ function checkArgsCount(string $input_code, $comments){
     }
 }
 
+/**
+ * \brief Function that check if given parameter is valid (presents in given array) 
+ * It is used only for check parameters if user want to take statistics. If statistics is not set,
+ * then function return false 
+ * 
+ * \param[in] param Parameter to check
+ * \param[in] args Array of given parameters
+ * \param[in] stats Flag for statistics 
+ * 
+ * \return 0 if statistics is set and given array contain given parameter
+ * \return 10 if array have some parameters for statistics, but file for writing them is not set
+ * \return false if there isn't given parameter for collecting statistics
+ */
 function checkArgs(string $param, $args, $stats){
     if(array_key_exists($param,$args)){
         if($stats != null){
@@ -149,7 +168,6 @@ function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
             $xw->text($input_code[$i]);
             $xw->closeElement();
             return;
-        // default:
         case 'READ':
             $xw->addElement('arg'.$i, array('type'=>'type'));
             $xw->text($input_code[$i]);
@@ -193,7 +211,18 @@ function checkFile(string $file, $flag = 0){
     }
 }
 
-
+/**
+ * \brief Function for iteration through directories
+ * It find all .src, .out and .rc files. Create array with corresponding files,
+ * sort this array in natural way. After sorting, on same indexes of arrays 
+ * there are files that corresponds to each other.
+ * 
+ * \note files .src, .out, .rc MUST have same string before '.' 
+ * 
+ * \param[in] files user defined direct
+ * 
+ * \return array of arrays with .src, .out, .rc files
+ */
 function iterFiles($files){
     $srcs = array();
     $outs = array();
@@ -216,6 +245,9 @@ function iterFiles($files){
     return array($srcs, $outs, $rcs);
 }
 
+/**
+ * \brief Class that wrap basic functionality of XMLWriter class based on needs of this project 
+ */
 class Writer extends XMLWriter{
     public function init(){
         // $this = new XMLWriter();
