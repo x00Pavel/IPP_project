@@ -1,4 +1,5 @@
 .IPPcode20
+ReaD GF@var int
 DEFVAR GF@counter
 MOVE GF@counter string@ #Inicializace proměnné na prázdný řetězec
 #Jednoduchá iterace , dokud nebude splněna zadaná podmínka
@@ -9,4 +10,6 @@ WRITE GF@counter
 WRITE string@\010
 CONCAT GF@counter GF@counter string@a
 JUMP while
+PUSHFRAME
+WRITE string@ #Inicializace proměnné na prázdný řetězec
 LABEL end
