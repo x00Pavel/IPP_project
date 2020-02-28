@@ -118,7 +118,7 @@ function var_const($input_code, $i, $xw){
             $xw->addElement('arg'.$i, array('type'=>'var'));
             $xw->text(strtoupper($parts[0])."@".$parts[1]);
             $xw->closeElement();
-            continue;
+            break;
         case "int":
         case "bool":
             $parts[1] = strtolower($parts[1]);
