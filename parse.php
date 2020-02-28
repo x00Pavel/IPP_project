@@ -95,15 +95,15 @@ while ($input_code = fgets(STDIN)){
             if($comments != -1){
                 $comments++;
             }
-            continue;
+            break;
         case "\n":
-            continue;
+            break;
         case ".": // Initial string
             $rc = checkHeader($input_code, $beginning);
             if($rc != 0){
                 exit ($rc);
             }
-            continue;
+            break;
         default:
             $rc = checkArgsCount($input_code, $comments);
             if($rc != 0){
@@ -119,19 +119,31 @@ while ($input_code = fgets(STDIN)){
                 $xw->addElement('instruction', array('order'=>$order, 'opcode'=>strtoupper($input_code[0])));
                 $arg_num = $commands[strtoupper($input_code[0])];
                 if($arg_num != 0){
-                    for ($i = 1; $i <= $arg_num; $i++){
-                        // Is it a variable or constant?
-                        if(preg_match('/\s*\S*@\S*/',$input_code[$i])){
+                    if(count($input_code) - 1 == $arg_num){
+                        for ($i = 1; $i <= $arg_num; $i++){
+                            // Is it a variable or constant?
+                            if(preg_match('/\s*\S*@\S*/',$input_code[$i])){
                             $rc = var_const($input_code, $i, $xw);
-                            if($rc != 0){
-                                exit ($rc);
+                                if($rc != 0){
+                                    exit ($rc);
+                                }
+                            }
+                            // Is it a label?
+                            else{
+                                label_type($input_code, $i, $xw, $jumps, $labels, $temp_arr);
                             }
                         }
-                        // Is it a label?
-                        else{
-                            label_type($input_code, $i, $xw, $jumps, $labels, $temp_arr);
-                        }
                     }
+                    else{
+                        fwrite(STDERR, "Wrong count of arguments: ".implode(" ",$input_code)."\n");
+                        $xw->close();
+                        exit (23);
+                    }
+                }
+                else if(count($input_code) - 1 != $arg_num){
+                    fwrite(STDERR, "Wrong count of arguments: ".implode(" ",$input_code)."\n");
+                    $xw->close();
+                    exit (23);
                 }
             }
             // Increment order of command 
@@ -147,7 +159,6 @@ if ($stats != false){
     array_shift($argv);
     $file = fopen($stats, "w") or die("unable to open file\n");
     foreach ($argv as $arg){
-        echo $arg.PHP_EOL;
         if($arg == '--comments'){
             fwrite($file,$comments."\n");
         }
