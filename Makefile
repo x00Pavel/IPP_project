@@ -1,33 +1,36 @@
-PARSER=parse.php
-TEST=test.php
-SRC_PARSE=./tests/parse-only/
+PARSER=~/studies/IPP/IPP_project/parse.php
+TEST=~/studies/IPP/IPP_project/test.php
+SRC_PARSE=~/studies/IPP/IPP_project/tests/parse-only/
 XMLCMP=java -jar ./JExamXML/jexamxml.jar
 YELOW=\033[1;33m
 RED=\033[0;33m
 NC=\033[0m # No Color
 
 make:
-	php7.2 ${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
+	php ${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
 
 test_only:
-	php ${TEST} --parse-only --recursive --directory=./tests/parse-only > result_test.html
+	php ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
+	# php ${TEST} --parse-only --recursive --directory=./tests/parse-only > output.html
+
 
 test_parse:
 	@echo "${YELOW}--------READ_TEST--------${NC}"
-	php7.2 ${PARSER} <${SRC_PARSE}read_test.src > read_test.my
-	${XMLCMP} read_test.my ${SRC_PARSE}read_test.out read_test_diff.my
+	php ${PARSER} <${SRC_PARSE}read_test.src > ${SRC_PARSE}read_test.my
+	${XMLCMP} ${SRC_PARSE}read_test.my ${SRC_PARSE}read_test.out ${SRC_PARSE}read_test_diff.my
 	@echo "${YELOW}--------SIMPLE_TEST--------${NC}"
-	php7.2 ${PARSER} <${SRC_PARSE}simple_tag.src > simple_tag.my
-	${XMLCMP} simple_tag.my ${SRC_PARSE}simple_tag.out simple_tag_diff.my
+	php ${PARSER} <${SRC_PARSE}simple_tag.src > ${SRC_PARSE}simple_tag.my
+	${XMLCMP} ${SRC_PARSE}simple_tag.my ${SRC_PARSE}simple_tag.out ${SRC_PARSE}simple_tag_diff.my
 	@echo "${YELOW}--------WRITE_TEST--------${NC}"
-	php7.2 ${PARSER} <${SRC_PARSE}write_test.src > write_test.my
-	${XMLCMP} write_test.my ${SRC_PARSE}write_test.out write_test_diff.my
+	php ${PARSER} <${SRC_PARSE}write_test.src > ${SRC_PARSE}write_test.my
+	${XMLCMP} ${SRC_PARSE}write_test.my ${SRC_PARSE}write_test.out ${SRC_PARSE}write_test_diff.my
 		
 
 clean:
-	rm -r ./tests/parse-only/*.my*
-	rm -r ./tests/parse-only/*.diff*
+	php clean.php ./
 
+view:
+	xdg-open output.html
 
 errors:
 # TODO markwodn this info
