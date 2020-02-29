@@ -135,13 +135,18 @@ while ($input_code = fgets(STDIN)){
                         }
                     }
                     else{
-                        fwrite(STDERR, "Wrong count of arguments: ".implode(" ",$input_code)."\n");
+                        fwrite(STDERR, "Wrong count of arguments: ".$input_code."\n");
                         $xw->close();
                         exit (23);
                     }
                 }
-                else if(count($input_code) - 1 != $arg_num){
-                    fwrite(STDERR, "Wrong count of arguments: ".implode(" ",$input_code)."\n");
+                if(count($input_code) - 1 == $arg_num){
+                    if (strtoupper($input_code[0]) == 'RETURN' && $jumps != -1){
+                        $jumps++;
+                    }
+                }
+                else{
+                    fwrite(STDERR, "Wrong count of arguments: ".$input_code."\n");
                     $xw->close();
                     exit (23);
                 }
@@ -175,7 +180,7 @@ if ($stats != false){
         }
         if($arg == '--jumps'){
             if($jumps != -1){        
-                fwrite($file,count(array_unique($temp_arr))."\n");
+                fwrite($file, $jumps."\n");
             }
         }
     }
