@@ -1,6 +1,6 @@
-PARSER=~/studies/IPP/IPP_project/parse.php
-TEST=~/studies/IPP/IPP_project/test.php
-SRC_PARSE=~/studies/IPP/IPP_project/tests/parse-only/
+PARSER=parse.php
+TEST=test.php
+SRC_PARSE=tests/parse-only/
 XMLCMP=java -jar ./JExamXML/jexamxml.jar
 YELOW=\033[1;33m
 RED=\033[0;33m
