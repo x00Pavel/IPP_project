@@ -139,7 +139,7 @@ if (!$int_only) {
     }
 
     foreach ($srcs as $index => $file) {
-        shell_exec("php7.4 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <$file > $file.my");
+        shell_exec("php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <$file > $file.my");
         $return_code = shell_exec("echo $?");
         if ($index < count($outs)) {
             $out = shell_exec("java -jar $jexamxml $file.my " . $outs[$index] . " $file.diff");

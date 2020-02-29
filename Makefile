@@ -7,22 +7,22 @@ RED=\033[0;33m
 NC=\033[0m # No Color
 
 make:
-	php ${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
+	php7.3${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
 
 test_only:
-	php ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
+	php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
 	# php ${TEST} --parse-only --recursive --directory=./tests/parse-only > output.html
 
 
 test_parse:
 	@echo "${YELOW}--------READ_TEST--------${NC}"
-	php ${PARSER} <${SRC_PARSE}read_test.src > ${SRC_PARSE}read_test.my
+	php7.3 ${PARSER} <${SRC_PARSE}read_test.src > ${SRC_PARSE}read_test.my
 	${XMLCMP} ${SRC_PARSE}read_test.my ${SRC_PARSE}read_test.out ${SRC_PARSE}read_test_diff.my
 	@echo "${YELOW}--------SIMPLE_TEST--------${NC}"
-	php ${PARSER} <${SRC_PARSE}simple_tag.src > ${SRC_PARSE}simple_tag.my
+	php7.3 ${PARSER} <${SRC_PARSE}simple_tag.src > ${SRC_PARSE}simple_tag.my
 	${XMLCMP} ${SRC_PARSE}simple_tag.my ${SRC_PARSE}simple_tag.out ${SRC_PARSE}simple_tag_diff.my
 	@echo "${YELOW}--------WRITE_TEST--------${NC}"
-	php ${PARSER} <${SRC_PARSE}write_test.src > ${SRC_PARSE}write_test.my
+	php7.3 ${PARSER} <${SRC_PARSE}write_test.src > ${SRC_PARSE}write_test.my
 	${XMLCMP} ${SRC_PARSE}write_test.my ${SRC_PARSE}write_test.out ${SRC_PARSE}write_test_diff.my
 		
 
