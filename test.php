@@ -21,7 +21,7 @@ $directory = './';
 $parse_script = './parse.php';
 $int_script = './interpret.py';
 $jexamxml = null;
-if (shell_exec('pwd') == "/home/xyadlo00/studies/IPP/IPP_project\n") {
+if (shell_exec('pwd') == "/home/xyadlo00/studies/IPP/project\n") {
     $jexamxml = './JExamXML/jexamxml.jar';
 } else {
     $jexamxml = '/pub/courses/ipp/jexamxml/jexamxml.jar';
@@ -48,7 +48,6 @@ if (array_key_exists("help", $args)) {
         exit(0);
     }
 }
-// $dir   = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
 
 if (array_key_exists("directory", $args)) {
     $directory = checkFile($args["directory"], 2);
@@ -105,7 +104,6 @@ if (array_key_exists("jexamxml", $args)) {
     }
 }
 
-// $html = fopen('output.html', 'w');
 fwrite(STDOUT, '<html>');
 
 
@@ -118,8 +116,6 @@ for ($i = 1; $i < $argc; $i++) {
 fwrite(STDOUT, "</ol>\n");
 
 fwrite(STDOUT, "<hr size=5>\n");
-
-
 
 
 if (!$int_only) {
@@ -138,56 +134,84 @@ if (!$int_only) {
         list($srcs, $outs, $rcs) = iterFiles($files);
     }
 
+
+    $out_str_passed = "";
+    $out_str_fault = "";
     foreach ($srcs as $index => $file) {
         shell_exec("php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <$file > $file.my");
+        // shell_exec("php7.3 ~/Desktop/parse_al.php --stats=./tests/stats --comments --loc --labels --jumps <$file > $file.my");
         $return_code = shell_exec("echo $?");
-        if ($index < count($outs)) {
-            $out = shell_exec("java -jar $jexamxml $file.my " . $outs[$index] . " $file.diff");
-            $xml_result = preg_match('/.*Two files are identical.*/', $out);
-        } else {
-            fwrite(STDOUT, "<p>No reference file (.out) for : $file</p><br/>\n");
-            fwrite(STDOUT, "<hr size=5>\n");
-            break;
-        }
-
-        $refer = null;
+        $refer_code = null;
         if ($index <= count($rcs)) {
-            $refer = file_get_contents($rcs[$index], false, NULL, 0);
-            if ($refer == "") {
-                $refer == "0";
+            $refer_code = file_get_contents($rcs[$index], false, NULL, 0);
+            if ($refer_code == "") {
+                $refer_code == "0";
             }
         } else {
-            $refer == "0";
+            $refer_code == "0";
         }
 
-        fwrite(STDOUT, "<b>Source file:<b/> $file<br/>\n");
-        fwrite(STDOUT, "<b>Reference output file:<b/> " . $outs[$index] . "<br/>\n<b>Result:</b>");
-        if (strcmp("$return_code", $refer) && $xml_result) {
-            fwrite(STDOUT, "<font color=\"green\">PASSED</font>\n");
-            $passed++;
-        } else {
-            fwrite(STDOUT, "<font color=\"red\">FAULT</font>\n");
-            // if (!$xml_result) {
 
-            //     $file_diff = shell_exec("cat $file.diff");
-            //     fwrite(STDOUT, "<b>Diffs<b/><br/>\n");
-            //     fwrite(STDOUT, "$file_diff\n");
-
-            // }
+        if (strcmp("$return_code", $refer_code)){
+            if ($index < count($outs)){
+                $out_file = $outs[$index];
+                if (file_get_contents($out_file)) {
+                    $out = shell_exec("java -jar $jexamxml $file.my " . $outs[$index] . " $file.diff");
+                    $xml_result = preg_match('/.*Two files are identical.*/', $out);
+                    if($xml_result){
+                        $out_str_passed = $out_str_passed . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
+                        $out_str_passed = $out_str_passed . "<br/>\n<b>Expecting return code:<b/> " . $refer_code."<br/>\n";
+                        $out_str_passed = $out_str_passed . "<b>Result:</b><font color=\"green\">PASSED</font>\n";
+                        $out_str_passed = $out_str_passed . "<hr size=5>\n";
+                        $passed++;
+                    }
+                    else{
+                        $out_str_fault = $out_str_fault . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
+                        $out_str_fault = $out_str_fault . "<br/>\n<b>Expecting return code:<b/> " . $refer_code."<br/>\n";
+                        $out_str_fault = $out_str_fault . "<b>Return code: $return_code<b/><br/>";
+                        $out_str_fault = $out_str_fault . "<b>Result:</b><font color=\"red\">FAULT</font>\n";
+                        $out_str_fault = $out_str_fault . "<hr size=5>\n";
+                        $faled++;                        
+                    }
+                }
+                else{
+                    $out_str_passed = $out_str_passed . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
+                    $out_str_passed = $out_str_passed . "<br/>\n<b>Expecting return code:<b/> " . $refer_code . "<br/>\n";
+                    $out_str_passed = $out_str_passed . "<b>Result:</b><font color=\"green\">PASSED</font>\n";
+                    $out_str_passed = $out_str_passed . "<hr size=5>\n";
+                    $passed++;
+                }                    
+            } else {
+                $out_str_fault = $out_str_fault . "<b>No reference file (.out) for : $file</b><br/>\n";
+                $out_str_fault = $out_str_fault . "<hr size=5>\n";
+                break;
+            }
+        }
+        else{
+            $out_str_fault = $out_str_fault . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
+            $out_str_fault = $out_str_fault . "<br/>\n<b>Expecting return code:<b/> " . $refer_code . "<br/>\n";
+            $out_str_fault = $out_str_fault . "<b>Return code: $return_code<b/>";
+            $out_str_fault = $out_str_fault . "<font color=\"red\">FAULT</font>\n";
+            $out_str_fault = $out_str_fault . "<hr size=5>\n";
             $faled++;
         }
-        fwrite(STDOUT, "<hr size=5>\n");
     }
 }
 
 $general = $passed + $faled;
-$par_passed = (100 / $general) * $passed;
-$par_faled  = (100 / $general) * $faled;
-$passed_count = str_repeat("#", $passed);
-$faled_count = str_repeat("#", $faled);
+$par_passed = 0;
+if($passed != 0){
+    $par_passed = (100 / $general) * $passed;
+}
+$par_faled = 0;
+if($faled != 0){
+    $par_faled  = (100 / $general) * $faled;
+}
 fwrite(STDOUT, "<b>Statistics<b/><br/>\n");
-fwrite(STDOUT, "Test passed $passed/$general ($par_passed%)<br/><b><font color=\"green\">$passed_count</font><b/><br/>\n");
-fwrite(STDOUT, "Test faled $faled/$general ($par_faled%)<br/><b><font color=\"red\">$faled_count</font><b/>\n");
-
+fwrite(STDOUT, "Test passed $passed/$general ($par_passed%)<br/><b>\n");
+fwrite(STDOUT, "Test faled $faled/$general ($par_faled%)<br/>\n");
+fwrite(STDOUT, "<hr color=yellow size=8>\n");
+fwrite(STDOUT, $out_str_fault);
+fwrite(STDOUT, $out_str_passed);
 
 fwrite(STDOUT, "</body>\n</html>");
