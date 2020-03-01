@@ -90,6 +90,7 @@ $xw->addElement('program', array('language'=>'IPPcode20'));
 
 // Reading code from standard input
 while ($input_code = fgets(STDIN)){
+    $input_code = trim($input_code," ");
     switch ($input_code[0]){
         case "#":
             if($comments != -1){
@@ -98,65 +99,113 @@ while ($input_code = fgets(STDIN)){
             break;
         case "\n":
             break;
-        case ".": // Initial string
+        case '.': // Initial string
             $rc = checkHeader($input_code, $beginning);
             if($rc != 0){
                 exit ($rc);
             }
             break;
         default:
-            $rc = checkArgsCount($input_code, $comments);
+            $rc = checkArgsCount($input_code, $comments, $commands);
             if($rc != 0){
+                $xw->close();
                 exit ($rc);
             }
+            $xw->addElement('instruction', array('order' => $order, 'opcode' => strtoupper($input_code[0])));
             // Check if it is valid operation code
-            if (!array_key_exists(strtoupper($input_code[0]), $commands)){
-                fwrite(STDERR, "Wrong command '".$input_code[0]."'\n");
-                $xw->close();
-                exit (22);
-            }
-            else{
-                $xw->addElement('instruction', array('order'=>$order, 'opcode'=>strtoupper($input_code[0])));
-                $arg_num = $commands[strtoupper($input_code[0])];
-                if($arg_num != 0){
-                    if(count($input_code) - 1 == $arg_num){
-                        for ($i = 1; $i <= $arg_num; $i++){
-                            // Is it a variable or constant?
-                            if(preg_match('/\s*\S*@\S*/',$input_code[$i])){
-                            $rc = var_const($input_code, $i, $xw);
-                                if($rc != 0){
-                                    exit ($rc);
-                                }
-                            }
-                            // Is it a label?
-                            else{
-                                label_type($input_code, $i, $xw, $jumps, $labels, $temp_arr);
-                            }
+            switch (strtoupper($input_code[0])){
+                case "BREAK": 
+                case "CREATEFRAME":
+                case "PUSHFRAME":
+                case "RETURN": 
+                    $jumps++;
+                case "POPFRAME": 
+                        break;
+                case "PUSHS":
+                case "EXIT":
+                case "POPS": 
+                case "DPRINT":
+                case "WRITE":
+                case "DEFVAR":
+                    $rc = var_symb($input_code, 1, $xw);
+                    if ($rc != 0) {
+                        exit($rc);
+                    }
+                    break;                    
+                case "ADD":
+                case "SUB":
+                case "MUL":
+                case "IDIV": 
+                case "LT":
+                case "GT":
+                case "EQ": 
+                case "AND":
+                case "OR":
+                case "GETCHAR":
+                case "SETCHAR":
+                case "CONCAT":
+                case "STRI2INT":
+                    for ($i = 1;$i < 4; $i++){
+                        $rc = var_symb($input_code, $i, $xw);
+                        if ($rc != 0) {
+                            exit($rc);
                         }
                     }
-                    else{
-                        fwrite(STDERR, "Wrong count of arguments: ".$input_code."\n");
-                        $xw->close();
-                        exit (23);
+                    break;
+                case "READ":
+                    $rc = var_symb($input_code, 1, $xw);
+                    if ($rc != 0) {
+                        exit($rc);
                     }
-                }
-                if(count($input_code) - 1 == $arg_num){
-                    if (strtoupper($input_code[0]) == 'RETURN' && $jumps != -1){
-                        $jumps++;
+                    $rc = label_type($input_code, 2, $xw, $jumps, $labels, $temp_arr);
+                    if ($rc != 0) {
+                        exit($rc);
                     }
-                }
-                else{
-                    fwrite(STDERR, "Wrong count of arguments: ".$input_code."\n");
-                    $xw->close();
+                    break;
+                case "TYPE":
+                case "INT2CHAR":
+                case "MOVE":
+                case "STRLEN":
+                case "NOT":
+                    for ($i = 1; $i < 3; $i++) {
+                        $rc = var_symb($input_code, $i, $xw);
+                        if ($rc != 0) {
+                            exit($rc);
+                        }
+                    }
+                    break;                    
+                case "LABEL": 
+                case "JUMP":
+                case "CALL":
+                    $rc = label_type($input_code, 1, $xw, $jumps, $labels, $temp_arr);
+                    if ($rc != 0){
+                        exit ($rc);
+                    }
+                    break;
+                case "JUMPIFEQ":
+                case "JUMPIFNEQ":
+                    $rc = label_type($input_code, 1, $xw, $jumps, $labels, $temp_arr);
+                    if ($rc != 0) {
+                        exit($rc);
+                    }
+                    for ($i = 2; $i < 4; $i++) {
+                        $rc = var_symb($input_code, $i, $xw);
+                        if ($rc != 0) {
+                            exit($rc);
+                        }
+                    }
+                    break;                    
+                default:
+                    fwrite(STDERR, "Command not supported ". $input_code[0]."\n");
                     exit (23);
+                    break;
+            
                 }
-            }
             // Increment order of command 
             $order++;
             // Close element 'instruction'
             $xw->closeElement();
-    }
-    
+        }
     continue;
 } 
 
@@ -190,5 +239,3 @@ if ($stats != false){
 $xw->closeElement();
 $xw->close();
 $xw->show();
-
-?>

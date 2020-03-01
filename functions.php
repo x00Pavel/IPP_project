@@ -20,7 +20,7 @@
 function checkHeader (string $header,bool $beginning){
     global $beginning;
     if ($beginning){
-        if (preg_match('/^\s*.ippcode20\s*/i',$header)){ // regex take strings like "    .IPpcode20     \n". Spaces are not mandatory
+        if (preg_match('/^\s*.ippcode20\s*/i',strtolower($header))){ // regex take strings like "    .IPpcode20     \n". Spaces are not mandatory
             $beginning = false;
             return 0;
         }
@@ -44,7 +44,7 @@ function checkHeader (string $header,bool $beginning){
  * \return 0 in success
  * \return 23 in case of count of arguments
  */
-function checkArgsCount(string $input_code, $comments){
+function checkArgsCount(string $input_code, $comments, $commands){
     global $input_code;
     global $comments;
     // Check for comments on line with code
@@ -56,19 +56,22 @@ function checkArgsCount(string $input_code, $comments){
     }
     
     $input_code = array_values(array_filter(preg_split('/\s+/', $input_code)));
-    $size = count($input_code);
-    if ($size <= 4){
-        return 0;
+    $size = count($input_code) - 1;
+    if (!array_key_exists(strtoupper($input_code[0]), $commands)) {
+        fwrite(STDERR, "Wrong command '" . $input_code[0] . "'\n");
+        return 22;
     }
-    else{
-        fwrite(STDERR,"Wrong number of arguments for '".$input_code[0]."' command.\n");
-        fwrite(STDERR, "You have following arguments: \n");
+    if($commands[strtoupper($input_code[0])] !=  $size){
+        fwrite(STDERR, "You have wrong number of parameters for command ". $input_code[0]."\n");
+        fwrite(STDERR, "You have ".$size.", but command requires ". $commands[$input_code[0]]."\n");
+        fwrite(STDERR, "Following arguments are inserted: \n");
         for ($i = 1; $i < $size; $i++){
-            fwrite(STDERR, $i.")".$input_code[$i]."   "); 
+            fwrite(STDERR, $i.")".$input_code[$i]."  |  "); 
         }
         fwrite(STDERR, "\n");
-        return (23); 
+        return 23;
     }
+    return 0;
 }
 
 /**
@@ -106,29 +109,34 @@ function checkArgs(string $param, $args, $stats){
  * \param[in] xw XML writer
  *
  */
-function var_const($input_code, $i, $xw){
-    $types = array("string", "int", "bool", "nil", "GF", "LF", "TF"); 
-    $parts = explode("@",$input_code[$i],2);
-    if(!in_array($parts[0], $types)){
-        fwrite(STDERR,"Wrong type ".$parts[0]."\n");
-        return 23;
-    }
+function var_symb($input_code, $i, $xw){
+    $parts = explode("@",$input_code[$i],2);    
+ 
     switch ($parts[0]){
         case "GF":case "TF":case "LF":
             $xw->addElement('arg'.$i, array('type'=>'var'));
             $xw->text(strtoupper($parts[0])."@".$parts[1]);
             $xw->closeElement();
             break;
-        case "int":
         case "bool":
             $parts[1] = strtolower($parts[1]);
+            $xw->addElement('arg' . $i, array('type' => $parts[0]));
+            $xw->text($parts[1]);
+            $xw->closeElement();                               
+            break;
+        case "int":
         case "string": // For string converting of '<','>' and '&' is automatically
         case "nil":
         // case "type":
             $xw->addElement('arg'.$i, array('type'=>$parts[0]));
             $xw->text($parts[1]);
             $xw->closeElement();                               
+            break;
+        default:
+            fwrite(STDERR, "Wrong type or bad parameter " . $input_code[$i] . "\n");
+            return 23;
         }
+        
     return 0;
 }
 
@@ -148,6 +156,11 @@ function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
     global $jumps;
     global $labels;
     global $temp_arr;
+
+    if (preg_match('/\s*\S*@\S*/', $input_code[$i])) {
+        fwrite(STDERR, "Expecting label, but got symbol ". $input_code[$i]."\n");
+        return 23;
+    }    
     switch (strtoupper($input_code[0])){
         case 'LABEL':
             if($label != -1){
@@ -156,7 +169,7 @@ function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
             $xw->addElement('arg'.$i, array('type'=>'label'));
             $xw->text($input_code[$i]);
             $xw->closeElement();
-            return;
+            return 0;
         case 'JUMP':
         case 'JUMPIFEQ':
         case 'JUMPIFNEQ':
@@ -167,12 +180,12 @@ function label_type($input_code, $i, $xw, $jumps, $label, $temp_arr){
             $xw->addElement('arg'.$i, array('type'=>'label'));
             $xw->text($input_code[$i]);
             $xw->closeElement();
-            return;
+            return 0;
         case 'READ':
             $xw->addElement('arg'.$i, array('type'=>'type'));
             $xw->text($input_code[$i]);
             $xw->closeElement();
-            return;
+            return 0;
     }
 }
 
