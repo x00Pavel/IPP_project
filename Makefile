@@ -45,4 +45,4 @@ errors:
 	@echo "${YELOW}99${NC} - interní chyba (neovlivněná vstupními soubory či parametry příkazové řádky; např. chyba alokace paměti)"
 
 zip:
-	zip -r xyadlo00.zip ${PARSER} ${TEST} functions.php interpret.py clean.php rozsireni
+	zip -r xyadlo00.zip ${PARSER} ${TEST} functions.php interpret.py clean.php rozsireni readme1.pdf
