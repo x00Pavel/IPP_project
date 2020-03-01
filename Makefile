@@ -43,3 +43,6 @@ errors:
 	@echo -e '\t ${YELOW}22${NC} - neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode20;'
 	@echo -e '\t ${YELOW}23${NC} - jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode20.'
 	@echo "${YELOW}99${NC} - interní chyba (neovlivněná vstupními soubory či parametry příkazové řádky; např. chyba alokace paměti)"
+
+zip:
+	zip -r xyadlo00.zip ${PARSER} ${TEST} functions.php interpret.py clean.php rozsireni
