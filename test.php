@@ -104,12 +104,22 @@ if (array_key_exists("jexamxml", $args)) {
     }
 }
 
-fwrite(STDOUT, '<html>');
+fwrite(STDOUT, '<!DOCTYPE html>
+<html>
+<head>
+<style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th {
+  text-align: center;
+}
+</style>
+</head>
+<body>');
 
-
-fwrite(STDOUT, "<body>\n<h1>Output of testing</h1>\n
-<p>Parameters</p>\n
-<ol>\n");
+fwrite(STDOUT, "<h2>Output of testing</h2>\n<p>Parameters</p>\n<ol>\n");
 for ($i = 1; $i < $argc; $i++) {
     fwrite(STDOUT, "<li>" . $argv[$i] . "</li>\n");
 }
@@ -117,7 +127,8 @@ fwrite(STDOUT, "</ol>\n");
 
 fwrite(STDOUT, "<hr size=5>\n");
 
-
+$ok = "<span style=\"color:green\">&#10004</span>";
+$not_ok = "<span style=\"color:red\">&#10008</span>";
 if (!$int_only) {
     $passed = 0;
     $faled = 0;
@@ -134,12 +145,11 @@ if (!$int_only) {
         list($srcs, $outs, $rcs) = iterFiles($files);
     }
 
-
     $out_str_passed = "";
     $out_str_fault = "";
+
     foreach ($srcs as $index => $file) {
-        shell_exec("php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <$file > $file.my");
-        // shell_exec("php7.3 ~/Desktop/parse_al.php --stats=./tests/stats --comments --loc --labels --jumps <$file > $file.my");
+        shell_exec("php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <$file > tmp.my");
         $return_code = shell_exec("echo $?");
         $refer_code = null;
         if ($index <= count($rcs)) {
@@ -152,66 +162,83 @@ if (!$int_only) {
         }
 
 
-        if (strcmp("$return_code", $refer_code)){
-            if ($index < count($outs)){
+        if (strcmp("$return_code", $refer_code)) {
+            if ($index < count($outs)) {
                 $out_file = $outs[$index];
                 if (file_get_contents($out_file)) {
-                    $out = shell_exec("java -jar $jexamxml $file.my " . $outs[$index] . " $file.diff");
+                    $out = shell_exec("java -jar $jexamxml tmp.my " . $outs[$index] . " tmp.diff");
                     $xml_result = preg_match('/.*Two files are identical.*/', $out);
-                    if($xml_result){
-                        $out_str_passed = $out_str_passed . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
-                        $out_str_passed = $out_str_passed . "<br/>\n<b>Expecting return code:<b/> " . $refer_code."<br/>\n";
-                        $out_str_passed = $out_str_passed . "<b>Result:</b><font color=\"green\">PASSED</font>\n";
-                        $out_str_passed = $out_str_passed . "<hr size=5>\n";
+                    if ($xml_result) {
+                        $out_str_passed = $out_str_passed . "<tr>
+                            <td>$file<td/>
+                            <td>" . $outs[$index] . "<td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$ok<td/>
+                        <tr/>";
                         $passed++;
+                    } else {
+                        $out_str_passed = $out_str_passed . "<tr>
+                            <td>$file<td/>
+                            <td>" . $outs[$index] . "<td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$not_ok<td/>
+                        <tr/>";
+                        $faled++;
                     }
-                    else{
-                        $out_str_fault = $out_str_fault . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
-                        $out_str_fault = $out_str_fault . "<br/>\n<b>Expecting return code:<b/> " . $refer_code."<br/>\n";
-                        $out_str_fault = $out_str_fault . "<b>Return code: $return_code<b/><br/>";
-                        $out_str_fault = $out_str_fault . "<b>Result:</b><font color=\"red\">FAULT</font>\n";
-                        $out_str_fault = $out_str_fault . "<hr size=5>\n";
-                        $faled++;                        
-                    }
-                }
-                else{
-                    $out_str_passed = $out_str_passed . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
-                    $out_str_passed = $out_str_passed . "<br/>\n<b>Expecting return code:<b/> " . $refer_code . "<br/>\n";
-                    $out_str_passed = $out_str_passed . "<b>Result:</b><font color=\"green\">PASSED</font>\n";
-                    $out_str_passed = $out_str_passed . "<hr size=5>\n";
+                } else {
+                    $out_str_passed = $out_str_passed . "<tr>
+                        <td>$file<td/>
+                        <td>" . $outs[$index] . "<td/>
+                        <td>" . $refer_code . "<td/>
+                        <td>$ok<td/>
+                        <td>$ok<td/>
+                        <tr/>";
                     $passed++;
-                }                    
+                }
             } else {
                 $out_str_fault = $out_str_fault . "<b>No reference file (.out) for : $file</b><br/>\n";
                 $out_str_fault = $out_str_fault . "<hr size=5>\n";
-                break;
             }
-        }
-        else{
-            $out_str_fault = $out_str_fault . "<b>Source file:<b/>\n$file<br/>\n<b>Reference output file:<b/> " . $outs[$index];
-            $out_str_fault = $out_str_fault . "<br/>\n<b>Expecting return code:<b/> " . $refer_code . "<br/>\n";
-            $out_str_fault = $out_str_fault . "<b>Return code: $return_code<b/>";
-            $out_str_fault = $out_str_fault . "<font color=\"red\">FAULT</font>\n";
-            $out_str_fault = $out_str_fault . "<hr size=5>\n";
+        } else {
+            $out_str_passed = $out_str_passed . "<tr>
+                <td>$file<td/>
+                <td>" . $outs[$index] . "<td/>
+                <td>" . $refer_code . "<td/>
+                <td>$not_ok<td/>
+                <td>$not_ok<td/>
+            <tr/>";
             $faled++;
         }
     }
 }
 
+shell_exec("rm tmp.my tmp.diff");
 $general = $passed + $faled;
 $par_passed = 0;
-if($passed != 0){
+if ($passed != 0) {
     $par_passed = (100 / $general) * $passed;
 }
 $par_faled = 0;
-if($faled != 0){
+if ($faled != 0) {
     $par_faled  = (100 / $general) * $faled;
 }
+
+
 fwrite(STDOUT, "<b>Statistics<b/><br/>\n");
 fwrite(STDOUT, "Test passed $passed/$general ($par_passed%)<br/><b>\n");
 fwrite(STDOUT, "Test faled $faled/$general ($par_faled%)<br/>\n");
-fwrite(STDOUT, "<hr color=yellow size=8>\n");
+fwrite(STDOUT, "<table style=\"width:100%\">");
+fwrite(STDOUT, "<tr>
+        <th>Source file<th/>
+        <th>Reference file<th/>
+        <th>Reference return code<th/>
+        <th>Return code result<th/>
+        <th>Comparing result<th/>
+    <tr/>");
 fwrite(STDOUT, $out_str_fault);
 fwrite(STDOUT, $out_str_passed);
+fwrite(STDOUT, "<table/>");
 
 fwrite(STDOUT, "</body>\n</html>");

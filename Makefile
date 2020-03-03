@@ -10,9 +10,8 @@ make:
 	php7.3${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
 
 test_only:
-
-	# php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
-	php7.3 ${TEST} --parse-only --recursive --directory=./looool > output.html
+	php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
+	# php7.3 ${TEST} --parse-only --recursive --directory=./looool > output.html
 	# php ${TEST} --parse-only --recursive --directory=./tests/parse-only > output.html
 
 
@@ -31,7 +30,7 @@ test_parse:
 clean:
 	php7.3 clean.php ./
 
-view:
+view: test_only
 	xdg-open output.html
 
 errors:
