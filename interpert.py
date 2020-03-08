@@ -90,5 +90,18 @@ def main(*args, **kwargs):
         for line in sys.stdin:
             input_file += line
 
+def process_xml(xml_file):
+    root = source_file.getroot()
+    print(ET.tostring(root, encoding='utf8').decode('utf8')) # Print whole document
+    print(root.attrib)
+    for elem in root.findall("./program/insruction/argv1"):
+        print(elem.attrib, elem.text)
+        pass
+    # for child in root:
+    #     print(child.tag, child. attrib)
+    # print(source_file.attrib)
+
+
 if __name__ == "__main__":
     main()
+    process_xml(source_file)
