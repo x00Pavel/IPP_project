@@ -1,4 +1,5 @@
 PARSER=parse.php
+INTERPRET=interpert.py
 TEST=test.php
 SRC_PARSE=tests/parse-only/
 XMLCMP=java -jar ./JExamXML/jexamxml.jar
@@ -8,6 +9,9 @@ NC=\033[0m # No Color
 
 make:
 	php7.3${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
+
+interpret:
+	python3.7 ${INTERPRET} --source=output.xml --input=input_file
 
 test_only:
 	# php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
