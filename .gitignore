@@ -7,3 +7,6 @@ looool/
 xyadlo00.zip
 tests/
 output.*
+input_file
+for_test.src
+__pycache__
