@@ -1,5 +1,13 @@
 #!/usr/bin/python3.7
 # -*- coding: utf-8 -*-
+"""
+ __author__  =  "Pavel Yadlouski (xyadlo00)"
+ __project__ =  "Interpret for IPPcode20 language" 
+ __brief__   =  "Interpert of XML representation of IPPcode20 language" 
+ __file__    =  "interpret.py"
+ __date__    =  "03.2020"
+"""
+
 import sys
 import getopt
 import fileinput
