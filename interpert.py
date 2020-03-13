@@ -12,19 +12,11 @@ import sys
 import getopt
 import fileinput
 import xml.etree.ElementTree as ET
+import pprint as pp
+import interpert.operations as ops
 
 source_file = None
 input_file = None
-
-
-def write_log(msg, err_code=None):
-    """
-    Function for writing down logs to STDERR and exiting with given error code
-    """
-    sys.stderr.write(msg)
-    if err_code is not None:
-        sys.exit(err_code)
-
 
 def open_file(file, var):
     """
@@ -37,7 +29,7 @@ def open_file(file, var):
             # return var.read()
             pass
     except IOError:
-        write_log("File {} does not exist or can't be open to read\n".format(file)
+        ops.write_log("File {} does not exist or can't be open to read\n".format(file)
                   if file != '' else "You did not specified file for some parameter\n")
 
 
@@ -54,11 +46,11 @@ def main(*args, **kwargs):
             args, 'h', ['input=', 'source=', 'help'])
         params = dict(params)
     except getopt.GetoptError:
-        write_log("You did not specified required argument of parameter\n", 10)
+        ops.write_log("You did not specified required argument of parameter\n", 10)
 
     if '--help' in params.keys():
         if len(params.keys()) != 1 | len(arguments) != 0:
-            write_log(
+            ops.write_log(
                 "Parameter '--help' can't be combined with other parameters or arguments\n", 10)
         else:
             sys.stdout.write("""Program načte XML reprezentaci programu a tento program s využitím vstupu dle parametrů příkazové řádky interpretuje a generuje výstup. Vstupní XML reprezentace je např. generována skriptemparse.php (ale ne nutně) ze zdrojového kódu v IPPcode20. Interpret navíc oproti sekci 3.1 podporujeexistenci volitelných dokumentačních textových atributů name a description v kořenovém elementuprogram. Sémantika jednotlivých instrukcí IPPcode20 je popsána v sekci 6. Interpretace instrukcíprobíhá dle atributu order vzestupně (sekvence nemusí být souvislá na rozdíl od sekce 3.1)\n""")
@@ -67,7 +59,7 @@ def main(*args, **kwargs):
         try:
             source_file = ET.parse(params['--source'])
         except IOError:
-            write_log("File {} does not exist or can't be open to read\n".format(params['--source'])
+            ops.write_log("File {} does not exist or can't be open to read\n".format(params['--source'])
                       if params['--source'] != '' else "You did not specified file for some parameter\n")
 
     if '--input' in params.keys():
@@ -75,39 +67,67 @@ def main(*args, **kwargs):
             with open(params['--input'], 'r') as input_file:
                 pass
         except IOError:
-            write_log("File {} does not exist or can't be open to read\n".format(params['--input'])
+            ops.write_log("File {} does not exist or can't be open to read\n".format(params['--input'])
                       if params['--input'] != '' else "You did not specified file for some parameter\n")
 
     if source_file is None:
         source_file = ''
-        write_log("I'm waiting for you to input source code in XML format:\n")
+        ops.write_log("I'm waiting for you to input source code in XML format:\n")
         for line in sys.stdin:
             source_file += line
         source_file = ET.fromstring(source_file)
 
     if input_file is None:
         input_file = ''
-        write_log("I'm waiting for you to input parameters for script:\n")
-        # try:
-        #     while True:
-        #         input_file += input() + "\n"
-        # except EOFError:
-        #     pass
-        # print(input_file)
-        # input_file = fileinput.input()
+        ops.write_log("I'm waiting for you to input parameters for script:\n")
         for line in sys.stdin:
             input_file += line
 
+
+fnc_dict = {'ADD': ops.add_fnc,
+            'SUB': ops.sub_fnc,
+            'MUL': ops.mul_fnc,
+            'IDIV': ops.idiv_fnc,
+            'LABEL': ops.label_fnc,
+            'DEFVAR': ops.def_var_fnc,
+            }
+
+
 def process_xml(xml_file):
+    order = 0
     root = source_file.getroot()
-    print(ET.tostring(root, encoding='utf8').decode('utf8')) # Print whole document
-    print(root.attrib)
-    for elem in root.findall("./program/insruction/argv1"):
-        print(elem.attrib, elem.text)
-        pass
-    # for child in root:
-    #     print(child.tag, child. attrib)
-    # print(source_file.attrib)
+    # print(ET.tostring(root, encoding='utf8').decode('utf8'))  # Print whole document
+    # print(root.attrib)
+    for child in root:
+        order = order + 1
+        if int(child.attrib['order']) <= 0 | int(child.attrib['order']) != order:
+            exit(32)
+
+        # print(
+        #     f"{child.attrib['order']}. {child.tag} - {child.attrib['opcode']}")
+        try:
+            print(len(child))
+            opcode = child.attrib['opcode']
+            fnc = fnc_dict[opcode]
+            fnc(child)
+        except KeyError:
+            pass
+
+        # code = child['opcode']
+        # if code == 'ADD':
+
+        #     pass
+        # elif code == 'SUB':
+        #     pass
+        # elif code == 'IDIV':
+        #     pass
+        # elif code == 'MULL':
+
+        # for sub_child in child:
+            # print(type(sub_child))
+
+            # print(
+            #     f"\t{sub_child.tag}: {sub_child.attrib} -- {sub_child.text}")
 
 
 if __name__ == "__main__":

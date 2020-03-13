@@ -6,12 +6,18 @@ XMLCMP=java -jar ./JExamXML/jexamxml.jar
 YELOW=\033[1;33m
 RED=\033[0;33m
 NC=\033[0m # No Color
+IN=output.xml
 
 make:
+ifdef SOURCE
+	python3.7 ${INTERPRET} --source=${SOURCE} --input=input_file
+else
+	python3.7 ${INTERPRET} --source=${IN} --input=input_file
+endif
+
+parse:
 	php7.3${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
 
-interpret:
-	python3.7 ${INTERPRET} --source=output.xml --input=input_file
 
 test_only:
 	# php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
