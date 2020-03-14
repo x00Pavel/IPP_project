@@ -22,10 +22,9 @@ def open_file(file, var):
     """
     Function for handling opening file 
     """
-    print(file)
     try:
         with open(file, 'r') as var:
-            print(var.read())
+            # print(var.read())
             # return var.read()
             pass
     except IOError:
@@ -61,7 +60,8 @@ def main(*args, **kwargs):
         except IOError:
             ops.write_log("File {} does not exist or can't be open to read\n".format(params['--source'])
                       if params['--source'] != '' else "You did not specified file for some parameter\n")
-
+        except ET.ParseError:
+            ops.write_log("There is something wrong with tags\n", 32)
     if '--input' in params.keys():
         try:
             with open(params['--input'], 'r') as input_file:
@@ -96,39 +96,18 @@ fnc_dict = {'ADD': ops.add_fnc,
 def process_xml(xml_file):
     order = 0
     root = source_file.getroot()
-    # print(ET.tostring(root, encoding='utf8').decode('utf8'))  # Print whole document
-    # print(root.attrib)
     for child in root:
         order = order + 1
         if int(child.attrib['order']) <= 0 | int(child.attrib['order']) != order:
-            exit(32)
+            ops.write_log(f"""Wrong order:{child.attrib['order']}.
+                            Current order must be: {order}\n""", 32)
 
-        # print(
-        #     f"{child.attrib['order']}. {child.tag} - {child.attrib['opcode']}")
         try:
-            print(len(child))
             opcode = child.attrib['opcode']
             fnc = fnc_dict[opcode]
             fnc(child)
         except KeyError:
-            pass
-
-        # code = child['opcode']
-        # if code == 'ADD':
-
-        #     pass
-        # elif code == 'SUB':
-        #     pass
-        # elif code == 'IDIV':
-        #     pass
-        # elif code == 'MULL':
-
-        # for sub_child in child:
-            # print(type(sub_child))
-
-            # print(
-            #     f"\t{sub_child.tag}: {sub_child.attrib} -- {sub_child.text}")
-
+            ops.write_log(f"Wrong opcode: {child.attrib['opcode']}", 32)
 
 if __name__ == "__main__":
     main()
