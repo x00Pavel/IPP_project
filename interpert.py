@@ -115,8 +115,8 @@ def process_xml(xml_file):
                                 Current order must be: {order}\n""", 32)
             try:
                 opcode = child.attrib['opcode']
-                fnc = fnc_dict[opcode]
-                fnc(child)
+                function = fnc_dict[opcode]
+                function(child)
             except KeyError:
                 fnc.write_log(f"Wrong opcode: {child.attrib['opcode']}", 32)
 
