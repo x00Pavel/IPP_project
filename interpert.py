@@ -20,19 +20,6 @@ import interpert.other_functions as fnc
 source_file = None
 input_file = None
 
-def open_file(file, var):
-    """
-    Function for handling opening file 
-    """
-    try:
-        with open(file, 'r') as var:
-            # print(var.read())
-            # return var.read()
-            pass
-    except IOError:
-        fnc.write_log("File {} does not exist or can't be open to read\n".format(file)
-                  if file != '' else "You did not specified file for some parameter\n")
-
 
 def main(*args, **kwargs):
     """
@@ -47,21 +34,33 @@ def main(*args, **kwargs):
             args, 'h', ['input=', 'source=', 'help'])
         params = dict(params)
     except getopt.GetoptError:
-        fnc.write_log("You did not specified required argument of parameter\n", 10)
+        fnc.write_log(
+            "You did not specified required argument of parameter\n", 10)
 
     if '--help' in params.keys():
         if len(params.keys()) != 1 | len(arguments) != 0:
-            fnc.write_log(
-                "Parameter '--help' can't be combined with other parameters or arguments\n", 10)
+            fnc.write_log("Parameter '--help' can't be combined with other "
+                          "parameters or arguments\n", 10)
         else:
-            sys.stdout.write("""Program načte XML reprezentaci programu a tento program s využitím vstupu dle parametrů příkazové řádky interpretuje a generuje výstup. Vstupní XML reprezentace je např. generována skriptemparse.php (ale ne nutně) ze zdrojového kódu v IPPcode20. Interpret navíc oproti sekci 3.1 podporujeexistenci volitelných dokumentačních textových atributů name a description v kořenovém elementuprogram. Sémantika jednotlivých instrukcí IPPcode20 je popsána v sekci 6. Interpretace instrukcíprobíhá dle atributu order vzestupně (sekvence nemusí být souvislá na rozdíl od sekce 3.1)\n""")
+            sys.stdout.write(
+                "Program načte XML reprezentaci programu a tento program s "
+                "využitím vstupu dle parametrů příkazové řádky interpretuje a "
+                "generuje výstup. Vstupní XML reprezentace je např. Generována "
+                "skriptem parse.php (ale ne nutně) ze zdrojového kódu v "
+                "IPPcode20. Interpret navíc oproti sekci 3.1 podporujeexistenci"
+                " volitelných dokumentačních textových atributů name a "
+                "description v kořenovém elementuprogram. Sémantika "
+                "jednotlivých instrukcí IPPcode20 je popsána v sekci 6."
+                " Interpretace instrukcíprobíhá dle atributu order vzestupně"
+                " (sekvence nemusí být souvislá na rozdíl od sekce 3.1)\n""")
             sys.exit(0)
     if '--source' in params.keys():
         try:
             source_file = ET.parse(params['--source'])
         except IOError:
-            fnc.write_log("File {} does not exist or can't be open to read\n".format(params['--source'])
-                      if params['--source'] != '' else "You did not specified file for some parameter\n")
+            fnc.write_log("File {} does not exist or can't be open to read\n"
+                          .format(params['--source'])if params['--source'] != ''
+                          else "You did not specified file for some parameter\n")
         except ET.ParseError:
             fnc.write_log("There is something wrong with tags\n", 32)
     if '--input' in params.keys():
@@ -69,20 +68,23 @@ def main(*args, **kwargs):
             with open(params['--input'], 'r') as input_file:
                 pass
         except IOError:
-            fnc.write_log("File {} does not exist or can't be open to read\n".format(params['--input'])
-                      if params['--input'] != '' else "You did not specified file for some parameter\n")
+            fnc.write_log(f"File {params['--input']} does not exist or can't be "
+                          "open to read\n") if params['--input'] != '' \
+                else "You did not specified file for some parameter\n"
 
     if source_file is None:
         try:
             with open("tmp.xml", "w") as f:
-                fnc.write_log("I'm waiting for you to input source code in XML format:\n")
+                fnc.write_log(
+                    "I'm waiting for you to input source code in XML format:\n")
                 for line in sys.stdin:
                     f.write(line)
             source_file = ET.parse('tmp.xml')
             os.remove('tmp.xml')
 
         except:
-            fnc.write_log("Error while reading code from STDIN. Maybe error in creating temporary file\n", 99)
+            fnc.write_log("Error while reading code from STDIN."
+                          "Maybe error in creating temporary file\n", 99)
 
     if input_file is None:
         input_file = ''
@@ -97,7 +99,10 @@ fnc_dict = {'ADD': ops.add_fnc,
             'IDIV': ops.idiv_fnc,
             'LABEL': ops.label_fnc,
             'DEFVAR': ops.def_var_fnc,
+            'WRITE': ops.write_fnc,
+            'MOVE': ops.move_fnc,
             }
+
 
 def process_xml(xml_file):
     order = 0
@@ -110,15 +115,17 @@ def process_xml(xml_file):
     for child in root:
         if child.tag != 'program':
             order = order + 1
-            if int(child.attrib['order']) <= 0 | int(child.attrib['order']) != order:
-                fnc.write_log(f"""Wrong order:{child.attrib['order']}.
-                                Current order must be: {order}\n""", 32)
+            if int(child.attrib['order']) <= 0 | \
+                    int(child.attrib['order']) != order:
+                fnc.write_log(f"Wrong order:{child.attrib['order']}\n"
+                              f"Current order must be: {order}\n", 32)
             try:
                 opcode = child.attrib['opcode']
                 function = fnc_dict[opcode]
                 function(child)
             except KeyError:
                 fnc.write_log(f"Wrong opcode: {child.attrib['opcode']}", 32)
+
 
 if __name__ == "__main__":
     main()
