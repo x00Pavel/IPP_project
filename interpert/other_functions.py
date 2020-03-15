@@ -45,10 +45,10 @@ def get_item_from_frame(frame: str, var: str) -> tuple:
     write_log("Given variabel is not defined in this scope.\n", 32)
 
 
-def set_value_in_frame(frame: str, var: dict, index: int):
+def set_value_in_frame(frame: str, var_to_insert: dict, index: int):
     # Here can be an error
     try:
-        frames[frame][index] = var
+        frames[frame][index] = var_to_insert
         # print(frames[frame][index])
     except KeyError:
         write_log("""Error in seting new value in dict in set_value.
