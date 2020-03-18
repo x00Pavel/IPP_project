@@ -12,7 +12,85 @@ import re
 
 list_labels = []
 list_var = []
+# frames = {'GF': gf, 'LF': LocalFrame, 'TF': TemporaryFrame}
 frames = {'GF': [], 'LF': [], 'TF': None}
+
+
+class Frame():
+    global_frame = None
+
+    def __init__(self):
+        global_frame = []
+
+    def set_var(self, var: {}):
+        if var not in global_frame.keys():
+            global_frame.append(var)
+        else:
+            write_log
+
+    def insert(self, var_to_insert: dict, index: int):
+        try:
+            global_frame[index] = var_to_insert
+            # print(frames[frame][index])
+        except KeyError:
+            write_log("""Error in seting new value in dict in global frame.
+            Maybe some of indexes is not exits.""", 32)
+        except:
+            write_log("Error in inserting new value in set_value.", 32)
+
+
+    def get_list(self):
+        return global_frame
+
+class LocalFrame(Frame):
+    local_frame = None
+
+    def __init__(self):
+        self.local_frame = None
+        local_frame = Frame.global_frame
+
+    def crate_local_frame(self):
+        self.local_frame = []
+
+    def delate_local_frame(self):
+        self.local_frame = None
+
+    def insert(self, var_to_insert: dict, index: int):
+        try:
+            self.local_frame[index] = var_to_insert
+            # print(frames[frame][index])
+        except KeyError:
+            write_log("""Error in seting new value in dict in local frame.
+            Maybe some of indexes is not exits.""", 32)
+        except:
+            write_log("Error in inserting new value in set_value.", 32)
+
+    def get_list(self):
+        if self.local_frame is not None:
+            return self.local_frame
+        else:
+            return local_frame    
+
+class TemporaryFrame(Frame):
+    temporary_frame = None
+
+    def __init__(self):
+        self.temporary_frame = []
+
+    def insert(self, var_to_insert: dict, index: int):
+        try:
+            self.temporary_frame[index] = var_to_insert
+            # print(frames[frame][index])
+        except KeyError:
+            write_log("""Error in seting new value in temporay frame.
+            Maybe some of indexes is not exits.""", 32)
+        except:
+            write_log("Error in inserting new value in set_value.", 32)
+
+
+gf = Frame()
+lf = LocalFrame()
+
 
 def write_log(msg, err_code=None):
     """
@@ -24,7 +102,7 @@ def write_log(msg, err_code=None):
 
 def get_frame_list(frame: str) -> list:
     return frames[frame]
-    pass
+    
 
 
 def get_frame_n_var(variable: str):
@@ -32,7 +110,6 @@ def get_frame_n_var(variable: str):
         frame, var = (re.findall(
             r'^(GF|LF|TF)@(\w*)$', variable))[0]
     except:
-        raise
         write_log(f"Wrong format of variable. You have '{variable}'\n", 32)
     return (frame, var)
 

@@ -14,30 +14,9 @@ import pprint as pp
 import sys
 import re
 
-
-# def label_fnc(params: ET.Element):
-#     if len(params) != 1:
-#         fnc.write_log(
-#             "There is wrong number of arguments in function 'LABEL'"
-#             f"Required 1, got {len(params)}.\n", 32
-#         )
-
-#     if params['type'] != 'label':
-#         fnc.write_log(
-#             "Function 'LABEL' require 'label' as type of argument, but"
-#             f" you have type '{params['type']}'.\n", 52
-#         )
-
-#     if params.text in fnc.list_labels:
-#         fnc.write_log(
-#             f"Label '{params.text}' already exist.\n",32
-#         )
-#     else:
-#         fnc.list_labels.append(params.text)
-#         print(fnc.list_labels)        
-
-
 # Don't have arguments
+
+
 def create_frame_fnc(*args):
     pass
 
@@ -160,7 +139,7 @@ def def_var_fnc(params: ET.Element):
         if var in fnc.frames[frame].keys():
             fnc.write_log(
                 f"Variable {var} already defined in {frame} frame.\n", 52
-            ) 
+            )
         fnc.frames[frame].append({var: None, 'type': None})
     except:
         fnc.write_log("Something wrong with parsing variables in DEFVAR\n", 32)
