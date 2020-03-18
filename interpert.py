@@ -101,6 +101,13 @@ fnc_dict = {'ADD': ops.add_fnc,
             'DEFVAR': ops.def_var_fnc,
             'WRITE': ops.write_fnc,
             'MOVE': ops.move_fnc,
+            'LABEL': ops.label_fnc,
+            "CREATEFRAME": ops.create_frame_fnc,
+            "PUSHFRAME": ops.push_frame_fnc,
+            "POPFRAME": ops.pop_frame_fnc,
+            'CALL': ops.call_fnc,
+            "RETURN": ops.return_fnc,
+
             }
 
 
@@ -114,17 +121,16 @@ def process_xml(xml_file):
 
     for child in root:
         if child.tag != 'program':
-            order = order + 1
-            if int(child.attrib['order']) <= 0 | \
-                    int(child.attrib['order']) != order:
+            if int(child.attrib['order']) <= order:
                 fnc.write_log(f"Wrong order:{child.attrib['order']}\n"
                               f"Current order must be: {order}\n", 32)
+            order = order + 1
             try:
                 opcode = child.attrib['opcode']
                 function = fnc_dict[opcode]
                 function(child)
             except KeyError:
-                fnc.write_log(f"Wrong opcode: {child.attrib['opcode']}", 32)
+                fnc.write_log(f"Wrong opcode: {child.attrib['opcode']}.\n", 32)
 
 
 if __name__ == "__main__":
