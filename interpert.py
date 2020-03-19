@@ -107,7 +107,9 @@ fnc_dict = {'ADD': ops.add_fnc,
             "POPFRAME": ops.pop_frame_fnc,
             'CALL': ops.call_fnc,
             "RETURN": ops.return_fnc,
-
+            'POPS': ops.pops_fnc,
+            'PUSHS': ops.pushs_fnc,
+            'INT2CHAR': ops.int_2_char_fnc,
             }
 
 
@@ -127,9 +129,9 @@ def process_xml(xml_file):
             order = order + 1
             try:
                 opcode = child.attrib['opcode']
-                function = fnc_dict[opcode]
+                function = fnc_dict[opcode.upper()]
                 function(child)
-            except KeyError:
+            except:
                 fnc.write_log(f"Wrong opcode: {child.attrib['opcode']}.\n", 32)
 
 

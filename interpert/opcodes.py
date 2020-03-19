@@ -7,7 +7,6 @@
  __file__    =  "interpret/opcodes.py"
  __date__    =  "03.2020"
 """
-
 import xml.etree.ElementTree as ET
 import interpert.other_functions as fnc
 import pprint as pp
@@ -31,8 +30,12 @@ def pop_frame_fnc(*args):
     pass
 
 
+# TODO
 def call_fnc(params: ET.Element):
-    pass
+    label = fnc.check_params(params, 1, 'CALL')
+
+    if label not in fnc.list_labels.keys():
+        fnc.write_log(f"Label {label} is not specified yet.\n", 52)
 
 
 # Don't have arguments
@@ -41,11 +44,21 @@ def return_fnc(params: ET.Element):
 
 
 def pushs_fnc(params: ET.Element):
-    pass
+    fnc.check_params(params, 1, 'PUSHS')
+    # frame, item, index = fnc.get_item_from_frame(params[0].text)
+    src_type = params[0].attrib['type']
+    src_val = params[0].text
+    fnc.stack.append({'value': src_val, 'type': src_type})
+
 
 
 def pops_fnc(params: ET.Element):
-    pass
+    fnc.check_params(params, 1, 'POPS')
+    frame, item, index = fnc.get_item_from_frame(params[0].text)
+    val_to_insert = fnc.stack.pop()
+    item['type'] = val_to_insert['type']
+    item['value'] = val_to_insert['value']
+    fnc.set_value_in_frame(frame, item, index)
 
 
 def less_fnc(params: ET.Element):
@@ -73,8 +86,32 @@ def not_fnc(params: ET.Element):
 
 
 def int_2_char_fnc(params: ET.Element):
-    pass
-
+    destination, source = fnc.check_params(params, 2, 'INT2CHAR')
+    frame, item, index = fnc.get_item_from_frame(destination.text)
+    src_type = ''
+    src_val = '' 
+    if source.attrib['type'] == 'var':
+        frame, item, index = fnc.get_item_from_frame(source.text)
+        src_type = item['type']
+        src_val = item['value']
+    else:
+        src_type = source.attrib['type']
+        src_val = source.text
+    
+    if src_type != 'int':
+        fnc.write_log(
+            "Wrong type of second argument in function 'INT2CHAR'. "
+            f"Required 'int' type, but you have {src_type}.\n", 53
+        )
+    try:
+        item['value'] = chr(src_val)
+        item['type'] = 'string'
+    except:
+        fnc.write_log(
+            f"Value '{src_val}' can't be converted from 'int' type to "
+            "'string' type.\n", 58
+        )
+    fnc.set_value_in_frame(frame, item, index)
 
 def str_2_int_fnc(params: ET.Element):
     pass
@@ -136,33 +173,13 @@ def def_var_fnc(params: ET.Element):
                 f"'{params[0].attrib['type']}'\n", 53)
 
         frame, var = (re.findall(r'^(GF|LF|TF)@(\w*)$', params[0].text))[0]
-        if var in fnc.frames[frame].keys():
+        if var in [x['name'] for x in fnc.frames[frame]]:
             fnc.write_log(
                 f"Variable {var} already defined in {frame} frame.\n", 52
             )
-        fnc.frames[frame].append({var: None, 'type': None})
+        fnc.frames[frame].append({'name': var, 'value': '', 'type': 'nil'})
     except:
         fnc.write_log("Something wrong with parsing variables in DEFVAR\n", 32)
-
-
-def check_math(params: ET.Element, fnc):
-    # TODO
-    if (len(params) != 3):
-        fnc.write_log("Wrong count of parameters for function ADD\n", 32)
-    def_var = params[0]
-    first_val = params[1]
-    second_val = params[2]
-    # Check that there is variable to write result of adding
-    if def_var.attrib['type'] != 'var':
-        fnc.write_log(
-            "You did not specified variable to write result of ADD function."
-            f"Here is something different: '{def_var.attrib['type']}'\n",  32)
-
-    first_type = first_val.attrib['type']
-    second_type = second_val.attrib['type']
-    # Extracting information to correct processing of operaion
-    frame, var = fnc.get_frame_n_var(def_var.text)
-    item, index = fnc.get_item_from_frame(frame, var)
 
 
 def add_fnc(params: ET.Element):
@@ -171,247 +188,88 @@ def add_fnc(params: ET.Element):
     Arguments:
         * params: list of attributes of ElementTree Element  
     """
-    if (len(params) != 3):
-        fnc.write_log("Wrong count of parameters for function ADD\n", 32)
-    def_var = params[0]
-    first_val = params[1]
-    second_val = params[2]
-    # Check that there is variable to write result of adding
-    if def_var.attrib['type'] != 'var':
-        fnc.write_log(
-            "You did not specified variable to write result of ADD function."
-            f"Here is something different: '{def_var.attrib['type']}'\n",  53)
-
-    first_type = first_val.attrib['type']
-    second_type = second_val.attrib['type']
-    # Extracting information to correct processing of operaion
-    frame, var = fnc.get_frame_n_var(def_var.text)
-    item, index = fnc.get_item_from_frame(frame, var)
-
-    if first_type == 'int' and second_type == 'int':
-        try:
-            item[var] = int(first_val.text) + int(second_val.text)
-        except:
-            fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
-    elif first_type == 'int' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame, name_of_var = fnc.get_frame_n_var(second_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            # Extract variable to write down
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log("Wrong type of second parameter in function "
-                              f"ADD: {second_type}.\n", 53)
-            item[var] = int(first_val.text) + int(item_of_var[name_of_var])
-        except:
-            fnc.write_log("Something wrong in TRY block of ADD function when "
-                          "there is variable as second parameter\n", 32)
-    elif first_type == 'var' and second_type == 'int':
-        try:
-            # Extract variable to write down
-            frame, name_of_var = fnc.get_frame_n_var(first_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type of first parameter in function "
-                    f"ADD: {second_type}.\n", 53)
-            item[var] = int(item_of_var[name_of_var]) + int(second_val.text)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of ADD function when "
-                "there is variable as first parameter in first TRY block\n", 32)
-    elif first_type == 'var' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame_1, name_1 = fnc.get_frame_n_var(first_val.text)
-            item_of_var_1, index_of_var_1 = fnc.get_item_from_frame(
-                frame_1, name_1)
-
-            frame_2, name_2 = fnc.get_frame_n_var(second_val.text)
-            item_of_var_2, index_of_var_2 = fnc.get_item_from_frame(
-                frame_2, name_2)
-            # Extract variable to write down
-            if(item_of_var_1['type'] != 'int' or item_of_var_2['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type of second parameter in function "
-                    f"ADD: {second_type}.\n", 53)
-            item[var] = int(item_of_var_1[name_1]) + int(item_of_var_2[name_2])
-        except:
-            raise
-            fnc.write_log(
-                "Something wrong in TRY block of ADD function when there is"
-                " variable as second parameter in last TRY.\n", 32)
-    else:
-        fnc.write_log(
-            f"Wrong type for function ADD {first_type} and {second_type}.\n", 53)
-
-    item['type'] = 'int'
-    fnc.set_value_in_frame(frame, item, index)
+    try:
+        def_var, first_val, second_val = fnc.check_params(params, 3, 'ADD')
+        frame, item, index, args = fnc.check_math(
+            def_var, first_val, second_val)
+        item['value'] = args[0] + args[1]
+        item['type'] = 'int'
+        fnc.set_value_in_frame(frame, item, index)
+    except:
+        raise
+        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
 
 
 def concat_fnc(params: ET.Element):
-    # b'a\040\146\165\156\143\164more string\151\157\156\040\163\167'.decode('utf-8')
-    if (len(params) != 3):
-        fnc.write_log("Wrong count of parameters for function ADD\n", 56)
-    def_var = params[0]
-    first_val = params[1]
-    second_val = params[2]
-
-    # Check that there is variable to write result of adding
-    if def_var.attrib['type'] != 'var':
+    """
+    Function for handling 'CONCAT' operation code
+    Arguments:
+        * params: list of attributes of ElementTree Element
+    """
+    try:
+        def_var, first_val, second_val = fnc.check_params(params, 3, 'ADD')
+        frame, item, index, args = fnc.check_math(
+            def_var, first_val, second_val, 'string')
+        new_str = args[0] + args[1]
+        ar = re.findall(r'\\(\d{3})', new_str)
+        for a in ar:
+            new_str = re.sub(r'\\{}'.format(a), chr(int(a)), new_str)
+        item['value'] = new_str
+        fnc.set_value_in_frame(frame, item, index)
+    except:
         fnc.write_log(
-            "You did not specified variable to write result of ADD function."
-            f"Here is something different: '{def_var.attrib['type']}'\n", 53)
-    first_type = first_val.attrib['type']
-    second_type = second_val.attrib['type']
-
-    # Extracting information to correct processing of operaion
-    frame, var = fnc.get_frame_n_var(def_var.text)
-    item, index = fnc.get_item_from_frame(frame, var)
-    if first_type == 'string' and second_type == 'string':
-        try:
-            # Actual helding of operation
-            new_str = first_val.text + second_val.text
-            ar = re.findall(r'\\(\d{3})', new_str)
-            for a in ar:
-                new_str = re.sub(r'\\{}'.format(a), chr(int(a)), new_str)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of ADD function with STR", 32)
-    elif first_type == 'string' and second_type == 'var':
-        try:
-            frame_1, var_1 = fnc.get_frame_n_var(second_val.text)
-            item_1, index_1 = fnc.get_item_from_frame(frame_1, var_1)
-            # Actual helding of operation
-            if item_1['type'] != 'string':
-                fnc.write_log(
-                    f"Value with type {first_type} and {item_1['type']}"
-                    " can't be concatenated.\n", 53
-                )
-            new_str = first_val.text + item_1[var_1]
-            ar = re.findall(r'\\(\d{3})', new_str)
-            for a in ar:
-                new_str = re.sub(r'\\{}'.format(a), chr(int(a)), new_str)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of CONCAT function", 32)
-
-    elif first_type == 'var' and second_type == 'string':
-        try:
-            frame_1, var_1 = fnc.get_frame_n_var(first_val.text)
-            item_1, index_1 = fnc.get_item_from_frame(frame_1, var_1)
-            # Actual helding of operation
-            if item_1['type'] != 'string':
-                fnc.write_log(
-                    f"Value with type {item_1['type']} and {second_type}"
-                    " can't be concatenated.\n", 53
-                )
-            new_str = first_val.text + item_1[var_1]
-            ar = re.findall(r'\\(\d{3})', new_str)
-            for a in ar:
-                new_str = re.sub(r'\\{}'.format(a), chr(int(a)), new_str)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of CONCAT function", 32)
-    elif first_type == 'var' and second_type == 'var':
-        try:
-            frame_1, var_1 = fnc.get_frame_n_var(first_val.text)
-            item_1, index_1 = fnc.get_item_from_frame(frame_1, var_1)
-
-            frame_2, var_2 = fnc.get_frame_n_var(second_val.text)
-            item_2, index_2 = fnc.get_item_from_frame(frame_2, var_2)
-
-            # Actual helding of operation
-            if item_1['type'] != 'string' or item_2['type'] != 'string':
-                fnc.write_log(
-                    f"Value with type {item_1['type']} and {item_2['type']}"
-                    " can't be concatenated.\n", 53
-                )
-
-            new_str = item_1[var_1] + item_2[var_2]
-            ar = re.findall(r'\\(\d{3})', new_str)
-            for a in ar:
-                new_str = re.sub(r'\\{}'.format(a), chr(int(a)), new_str)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of ADD function with STR", 32)
-
-    item[var] = new_str
-    fnc.set_value_in_frame(frame, item, index)
+            "Something wrong in TRY block of CONCAT", 32)
 
 
 def write_fnc(params: ET.Element):
-    if len(params) != 1:
-        fnc.write_log(
-            "Wrong number of arguments in function WRITE", 56
-        )
-    arg = params[0]
+    arg = fnc.check_params(params, 1, 'WRITE')
+
     arg_type = arg.attrib['type']
     arg_val = arg.text
-
+    to_print = ''
     if arg_type == 'var':
-        frame, var = fnc.get_frame_n_var(arg_val)
-        item, index = fnc.get_item_from_frame(frame, var)
+        frame, item, index = fnc.get_item_from_frame(arg_val)
         if item['type'] == 'nil':
-            sys.stdout.write('')
+            pass
         elif item['type'] == 'string':
-            print("HER")
-            decoded_string = bytes(
-                item[var], "utf-8").decode("utf-8")
+            to_print = bytes(
+                item['value'], "utf-8").decode("utf-8")
         else:
-            sys.stdout.write((item[var]))
+            to_print = item['value']
     elif arg_type == 'string':
         ar = re.findall(r'\\(\d{3})', arg_val)
         for a in ar:
             arg_val = re.sub(r'\\{}'.format(a), chr(int(a)), arg_val)
-        sys.stdout.write(arg_val)
+        to_print = arg_val
     elif arg_type == 'int' or arg_type == 'bool':
-        sys.stdout.write(str(arg_val))
+        to_print = arg_val
+    sys.stdout.write(str(to_print))
 
 
 def move_fnc(params):
-    if len(params) != 2:
-        fnc.write_log(
-            "Wrong number of parameters in function MOVE. "
-            f"You have: {len(params)}, but 2 required\n", 56
-        )
-
-    dest_var = params[0]
-    value = params[1]
+    dest_var, value = fnc.check_params(params, 2, 'MOVE')
 
     if dest_var.attrib['type'] != 'var':
         fnc.write_log(
             "Error in MOVE function. You can not move not to variable\n", 53
         )
 
-    frame, var = fnc.get_frame_n_var(dest_var.text)
-    item, index = fnc.get_item_from_frame(frame, var)
+    frame, item, index = fnc.get_item_from_frame(dest_var.text)
     if value.attrib['type'] == 'var':
-        frame_src, var_src = fnc.get_frame_n_var(value.text)
-        item_src, index_src = fnc.get_item_from_frame(frame_src, var_src)
-        fnc.set_value_in_frame(frame, item_src, index)
+        frame_src, item_src, index_src = fnc.get_item_from_frame(value.text)
+        item['value'] = item_src['value']
+        item['type'] = item_src['type']
     else:
-        fnc.set_value_in_frame(
-            frame, {var: value.text, 'type': value.attrib['type']}, index)
+        item['value'] = value.text
+        item['type'] = value.attrib['type']
+
+    fnc.set_value_in_frame(frame, item, index)
 
 
 def label_fnc(params):
-    if len(params) != 1:
-        fnc.write_log(
-            "Wrong number of parameters in function 'LABEL'. "
-            f"You have: {len(params)}, but 1 required.\n", 56
-        )
-
-    label = params[0]
-    if label.attrib['type'] != 'label':
-        fnc.write_log(
-            "There is an error while creating new label. Type must be 'label',"
-            f" but, you have '{label.attrib['type']}'.\n", 53
-        )
+    label = fnc.check_params(params, 1, 'LABEL')
     if label.text not in fnc.list_labels:
-        fnc.list_labels.append(label.text)
+        fnc.list_labels.append({label.text: params.attrib['order']})
     else:
         fnc.write_log(
             f"Label {label.text} already defined.\n", 52
@@ -420,87 +278,19 @@ def label_fnc(params):
 
 def sub_fnc(params):
     """
-    Function for handling opcode SUB
+    Function for handling 'SUB' operation code
     Arguments:
         * params: list of attributes of ElementTree Element  
     """
-    if (len(params) != 3):
-        fnc.write_log("Wrong count of parameters for function SUB\n", 56)
-    def_var = params[0]
-    first_val = params[1]
-    second_val = params[2]
-    # Check that there is variable to write result of adding
-    if def_var.attrib['type'] != 'var':
-        fnc.write_log(
-            "You did not specified variable to write result of SUB function."
-            f"Here is something different: '{def_var.attrib['type']}'\n",  53)
-
-    first_type = first_val.attrib['type']
-    second_type = second_val.attrib['type']
-    # Extracting information to correct processing of operaion
-    frame, var = fnc.get_frame_n_var(def_var.text)
-    item, index = fnc.get_item_from_frame(frame, var)
-    if first_type == 'int' and second_type == 'int':
-        try:
-            item[var] = int(first_val.text) - int(second_val.text)
-        except:
-            fnc.write_log("Something wrong in TRY block of SUB function.\n", 32)
-    elif first_type == 'int' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame, name_of_var = fnc.get_frame_n_var(second_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            # Extract variable to write down
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log("Wrong type of second parameter in function "
-                              f"SUB: {second_type}.\n", 53)
-            item[var] = int(first_val.text) - int(item_of_var[name_of_var])
-        except:
-            fnc.write_log("Something wrong in TRY block of SUB function when "
-                          "there is variable as second parameter\n", 32)
-    elif first_type == 'var' and second_type == 'int':
-        try:
-            # Extract variable to write down
-            frame, name_of_var = fnc.get_frame_n_var(first_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type of first parameter in function "
-                    f"SUB: {second_type}.\n", 53)
-            item[var] = int(item_of_var[name_of_var]) - int(second_val.text)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of SUB function when "
-                "there is variable as first parameter in first TRY block\n", 32)
-    elif first_type == 'var' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame_1, name_1 = fnc.get_frame_n_var(first_val.text)
-            item_of_var_1, index_of_var_1 = fnc.get_item_from_frame(
-                frame_1, name_1)
-
-            frame_2, name_2 = fnc.get_frame_n_var(second_val.text)
-            item_of_var_2, index_of_var_2 = fnc.get_item_from_frame(
-                frame_2, name_2)
-            # Extract variable to write down
-            if(item_of_var_1['type'] != 'int' or item_of_var_2['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type on of parameters in function "
-                    f"SUB: {second_type}.\n", 53)
-            item[var] = int(item_of_var_1[name_1]) - int(item_of_var_2[name_2])
-        except:
-            raise
-            fnc.write_log(
-                "Something wrong in TRY block of SUB function when there is"
-                " variable as second parameter in last TRY.\n", 32)
-    else:
-        fnc.write_log(
-            f"Wrong type for function SUB {first_type} and {second_type}.\n", 53)
-
-    item['type'] = 'int'
-    fnc.set_value_in_frame(frame, item, index)
+    try:
+        def_var, first_val, second_val = fnc.check_params(params, 3, 'SUB')
+        frame, item, index, args = fnc.check_math(
+            def_var, first_val, second_val)
+        item['value'] = args[0] + args[1]
+        item['type'] = 'int'
+        fnc.set_value_in_frame(frame, item, index)
+    except:
+        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
 
 
 def mul_fnc(params):
@@ -509,83 +299,15 @@ def mul_fnc(params):
     Arguments:
         * params: list of attributes of ElementTree Element
     """
-    if (len(params) != 3):
-        fnc.write_log("Wrong count of parameters for function MUL\n", 56)
-    def_var = params[0]
-    first_val = params[1]
-    second_val = params[2]
-    # Check that there is variable to write result of adding
-    if def_var.attrib['type'] != 'var':
-        fnc.write_log(
-            "You did not specified variable to write result of MUL function."
-            f"Here is something different: '{def_var.attrib['type']}'\n",  53)
-
-    first_type = first_val.attrib['type']
-    second_type = second_val.attrib['type']
-    # Extracting information to correct processing of operaion
-    frame, var = fnc.get_frame_n_var(def_var.text)
-    item, index = fnc.get_item_from_frame(frame, var)
-    if first_type == 'int' and second_type == 'int':
-        try:
-            item[var] = int(first_val.text) * int(second_val.text)
-        except:
-            fnc.write_log("Something wrong in TRY block of MUL function.\n", 32)
-    elif first_type == 'int' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame, name_of_var = fnc.get_frame_n_var(second_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            # Extract variable to write down
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log("Wrong type of second parameter in function "
-                              f"MUL: {second_type}.\n", 53)
-            item[var] = int(first_val.text) * int(item_of_var[name_of_var])
-        except:
-            fnc.write_log("Something wrong in TRY block of MUL function when "
-                          "there is variable as second parameter\n", 32)
-    elif first_type == 'var' and second_type == 'int':
-        try:
-            # Extract variable to write down
-            frame, name_of_var = fnc.get_frame_n_var(first_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type of second parameter in function "
-                    f"MUL: {second_type}.\n", 53)
-            item[var] = int(item_of_var[name_of_var]) * int(second_val.text)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of MUL function when "
-                "there is variable as first parameter in first TRY block\n", 32)
-    elif first_type == 'var' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame_1, name_1 = fnc.get_frame_n_var(first_val.text)
-            item_of_var_1, index_of_var_1 = fnc.get_item_from_frame(
-                frame_1, name_1)
-
-            frame_2, name_2 = fnc.get_frame_n_var(second_val.text)
-            item_of_var_2, index_of_var_2 = fnc.get_item_from_frame(
-                frame_2, name_2)
-            # Extract variable to write down
-            if(item_of_var_1['type'] != 'int' or item_of_var_2['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type on of parameters in function "
-                    f"MUL: {second_type}.\n", 53)
-            item[var] = int(item_of_var_1[name_1]) * int(item_of_var_2[name_2])
-        except:
-            raise
-            fnc.write_log(
-                "Something wrong in TRY block of MUL function when there is"
-                " variable as second parameter in last TRY.\n", 32)
-    else:
-        fnc.write_log(
-            f"Wrong type for function MUL {first_type} and {second_type}.\n", 53)
-
-    item['type'] = 'int'
-    fnc.set_value_in_frame(frame, item, index)
+    try:
+        def_var, first_val, second_val = fnc.check_params(params, 3, 'MUL')
+        frame, item, index, args = fnc.check_math(
+            def_var, first_val, second_val)
+        item['value'] = args[0] * args[1]
+        item['type'] = 'int'
+        fnc.set_value_in_frame(frame, item, index)
+    except:
+        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
 
 
 def idiv_fnc(params):
@@ -594,96 +316,14 @@ def idiv_fnc(params):
     Arguments:
         * params: list of attributes of ElementTree Element  
     """
-    if (len(params) != 3):
-        fnc.write_log("Wrong count of parameters for function IDIV\n", 56)
-    def_var = params[0]
-    first_val = params[1]
-    second_val = params[2]
-    # Check that there is variable to write result of adding
-    if def_var.attrib['type'] != 'var':
-        fnc.write_log(
-            "You did not specified variable to write result of IDIV function."
-            f"Here is something different: '{def_var.attrib['type']}'\n",  53)
-
-    first_type = first_val.attrib['type']
-    second_type = second_val.attrib['type']
-    # Extracting information to correct processing of operaion
-    frame, var = fnc.get_frame_n_var(def_var.text)
-    item, index = fnc.get_item_from_frame(frame, var)
-    if first_type == 'int' and second_type == 'int':
-        if int(second_val.text) == 0:
-            fnc.write_log(
-                "Devision by zero.\n", 57
-            )
-        try:
-            item[var] = int(first_val.text) / int(second_val.text)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of IDIV function.\n", 32)
-    elif first_type == 'int' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame, name_of_var = fnc.get_frame_n_var(second_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            # Extract variable to write down
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log("Wrong type of second parameter in function "
-                              f"IDIV: {second_type}.\n", 53)
-            elif int(item_of_var[name_of_var]) == 0:
-                fnc.write_log(
-                    "Devision by zero.\n", 57
-                )
-            item[var] = int(first_val.text) / int(item_of_var[name_of_var])
-        except:
-            fnc.write_log("Something wrong in TRY block of IDIV function when "
-                          "there is variable as second parameter\n", 32)
-    elif first_type == 'var' and second_type == 'int':
-        try:
-            # Extract variable to write down
-            frame, name_of_var = fnc.get_frame_n_var(first_val.text)
-            item_of_var, index_of_var = fnc.get_item_from_frame(
-                frame, name_of_var)
-            if(item_of_var['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type of first parameter in function "
-                    f"IDIV: {second_type}.\n", 53)
-            elif int(second_val.text) == 0:
-                fnc.write_log(
-                    "Devision by zero.\n", 57
-                )
-            item[var] = int(item_of_var[name_of_var]) / int(second_val.text)
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of IDIV function when "
-                "there is variable as first parameter in first TRY block\n", 32)
-    elif first_type == 'var' and second_type == 'var':
-        try:
-            # Extract value from given variable
-            frame_1, name_1 = fnc.get_frame_n_var(first_val.text)
-            item_of_var_1, index_of_var_1 = fnc.get_item_from_frame(
-                frame_1, name_1)
-
-            frame_2, name_2 = fnc.get_frame_n_var(second_val.text)
-            item_of_var_2, index_of_var_2 = fnc.get_item_from_frame(
-                frame_2, name_2)
-            # Extract variable to write down
-            if(item_of_var_1['type'] != 'int' or item_of_var_2['type'] != 'int'):
-                fnc.write_log(
-                    "Wrong type one of parameters in function "
-                    f"IDIV: {second_type}.\n", 53)
-            elif int(item_of_var_2[name_2]) == 0:
-                fnc.write_log(
-                    "Devision by zero.\n", 57
-                )
-            item[var] = int(item_of_var_1[name_1]) / int(item_of_var_2[name_2])
-        except:
-            fnc.write_log(
-                "Something wrong in TRY block of IDIV function when there is"
-                " variable as second parameter in last TRY.\n", 32)
-    else:
-        fnc.write_log(
-            f"Wrong type for function IDIV {first_type} and {second_type}.\n", 53)
-
-    item['type'] = 'int'
-    fnc.set_value_in_frame(frame, item, index)
+    try:
+        def_var, first_val, second_val = fnc.check_params(params, 3, 'IDIV')
+        frame, item, index, args = fnc.check_math(
+            def_var, first_val, second_val)
+        if 0 in args:
+            fnc.write_log("There is devision by zero.\n", 57)
+        item['value'] = args[0] + args[1]
+        item['type'] = 'int'
+        fnc.set_value_in_frame(frame, item, index)
+    except:
+        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
