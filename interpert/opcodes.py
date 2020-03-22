@@ -1,14 +1,15 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3.8
 # -*- coding: utf-8 -*-
 """
  __author__  =  "Pavel Yadlouski (xyadlo00)"
- __project__ =  "Interpret for IPPcode20 language" 
- __brief__   =  "Functions for all valid operation codes" 
+ __project__ =  "Interpret for IPPcode20 language"
+ __brief__   =  "Functions for all valid operation codes"
  __file__    =  "interpret/opcodes.py"
  __date__    =  "03.2020"
 """
 import xml.etree.ElementTree as ET
 import interpert.other_functions as fnc
+
 import pprint as pp
 import sys
 import re
@@ -48,8 +49,7 @@ def pushs_fnc(params: ET.Element):
     # frame, item, index = fnc.get_item_from_frame(params[0].text)
     src_type = params[0].attrib['type']
     src_val = params[0].text
-    fnc.stack.append({'value': src_val, 'type': src_type})
-
+    fnc.stack.push({'value': src_val, 'type': src_type})
 
 
 def pops_fnc(params: ET.Element):
@@ -74,37 +74,53 @@ def equal_fnc(params: ET.Element):
 
 
 def and_fnc(params: ET.Element):
-    pass
+    destination, first, second = fnc.check_params(params, 3, 'AND')
+    try:
+        first = fnc.return_value(first, 'bool', 'AND')
+        second = fnc.return_value(second, 'bool', 'AND')
+        fnc.set_n_insert_val_type(
+            destination.text, 'bool', str(first and second))
+    except:
+        fnc.write_log(32, fnc='AND')
 
 
 def or_fnc(params: ET.Element):
-    pass
+    destination, first, second = fnc.check_params(params, 3, 'AND')
+    try:
+        first = fnc.return_value(first, 'bool', 'OR')
+        second = fnc.return_value(second, 'bool', 'OR')
+        fnc.set_n_insert_val_type(
+            destination.text, 'bool', str(first or second))
+    except:
+        fnc.write_log(32, fnc='OR')
 
 
 def not_fnc(params: ET.Element):
-    pass
+    destination, first = fnc.check_params(params, 2, 'NOT')
+    try:
+        first = fnc.return_value(first, 'bool', 'NOT')
+        fnc.set_n_insert_val_type(destination.text, 'bool', str(not first))
+    except:
+        fnc.write_log(32, fnc='NOT')
 
 
 def int_2_char_fnc(params: ET.Element):
     destination, source = fnc.check_params(params, 2, 'INT2CHAR')
     frame, item, index = fnc.get_item_from_frame(destination.text)
     src_type = ''
-    src_val = '' 
+    src_val = ''
     if source.attrib['type'] == 'var':
-        frame, item, index = fnc.get_item_from_frame(source.text)
-        src_type = item['type']
-        src_val = item['value']
+        src_frame, src_item, src_index = fnc.get_item_from_frame(source.text)
+        src_type = src_item['type']
+        src_val = src_item['value']
     else:
         src_type = source.attrib['type']
         src_val = source.text
-    
+
     if src_type != 'int':
-        fnc.write_log(
-            "Wrong type of second argument in function 'INT2CHAR'. "
-            f"Required 'int' type, but you have {src_type}.\n", 53
-        )
+        fnc.write_log(53, '', fnc='INT2CHAR', req_type='int', src_type=src_type)
     try:
-        item['value'] = chr(src_val)
+        item['value'] = chr(int(src_val))
         item['type'] = 'string'
     except:
         fnc.write_log(
@@ -113,28 +129,124 @@ def int_2_char_fnc(params: ET.Element):
         )
     fnc.set_value_in_frame(frame, item, index)
 
+
 def str_2_int_fnc(params: ET.Element):
-    pass
+    destination, string, index_of_char = fnc.check_params(params, 3, 'STRI2INT')
+    frame, item, index = fnc.get_item_from_frame(destination.text)
+    if string.attrib['type'] == 'var':
+        str_frame, str_item, str_index = fnc.get_item_from_frame(string.text)
+        if str_item['type'] != 'string':
+            fnc.write_log(53, fnc='STRI2INT', req_type='string',
+                          src_type=str_item['type'])
+        string = str_item['value']
+    elif string.attrib['type'] == 'string':
+        string = string.text
+    else:
+        fnc.write_log(53, fnc='STRI2INT', req_type='string/var',
+                      src_type=str_item['type'])
+
+    if index_of_char.attrib['type'] == 'var':
+        ind_frame, ind_item, ind_index = fnc.get_item_from_frame(
+            index_of_char.text)
+        if ind_item['type'] != 'int':
+            fnc.write_log(53, fnc='STRI2INT', req_type='int',
+                          src_type=str_item['type'])
+        try:
+            index_of_char = int(ind_item['value'])
+        except:
+            fnc.write_log(58, fnc='STRI2INT')
+    elif index_of_char.attrib['type'] == 'int':
+        try:
+            index_of_char = int(index_of_char.text)
+        except:
+            fnc.write_log(58, fnc='STRI2INT')
+
+    if index_of_char < 0:
+        fnc.write_log(58, fnc='STRI2INT')
+
+    try:
+        char = string[index_of_char]
+        item['value'] = ord(char)
+        item['type'] = 'int'
+        fnc.set_value_in_frame(frame, item, index)
+    except:
+        fnc.write_log(58, fnc='STRI2INT')
 
 
-def read_fnc(params: ET.Element):
-    pass
+def read_fnc(params: ET.Element, input_file):
+
+    destination, type_ = fnc.check_params(params, 2, 'READ')
+    if type_.attrib['type'] != 'type':
+        fnc.write_log(53, '', fnc='READ', req_type='type',
+                      src_type=type_.attrib['type'])
+    try:
+        var = ''
+        if input_file is None:
+            var = input()
+        else:
+            var = input_file[0]
+
+        frame, item, index = fnc.get_item_from_frame(destination.text)
+        if type_.text == 'int':
+            if not isinstance(var, int):
+                var = 'nil'
+        elif type_.text == 'string':
+            if not isinstance(var, str):
+                var = 'nil'
+        elif type_.text == 'bool':
+            if var.lower() == 'true':
+                var = 'true'
+            else:
+                var = 'false'
+        else:
+            fnc.write_log(58, fnc='READ')
+
+        item['value'] = var
+        item['type'] = type_.text if var != 'nil' else 'nil'
+        fnc.set_value_in_frame(frame, item, index)
+    except:
+        fnc.write_log(32, fnc='READ')
 
 
 def strlen_fnc(params: ET.Element):
-    pass
+    destination, source = fnc.check_params(params, 2, 'STRLEN')
+    try:
+        value = fnc.return_value(source, 'string', 'STRLEN')
+        fnc.set_n_insert_val_type(destination.text, 'int', len(value))
+    except:
+        fnc.write_log(32, fnc='STRLEN')
 
 
 def get_char_fnc(params: ET.Element):
-    pass
+    destination, source, index = fnc.check_params(params, 3, 'GETCHAR')
+
+    string = fnc.return_value(source, 'string', 'GETCHAR')
+    index = int(fnc.return_value(index, 'int', 'GETCHAR'))
+
+    if index > len(string):
+        fnc.write_log(58, '', fnc='GETCHAR')
+    else:
+        fnc.set_n_insert_val_type(destination.text, 'string', string[index])
 
 
 def set_char_fnc(params: ET.Element):
-    pass
+    source, index, char = fnc.check_params(params, 3, 'SETCHAR')
+
+    index = int(fnc.return_value(index, 'int', 'SETCHAR'))
+    char = fnc.return_value(char, 'string', 'SETCHAR')
+    string = list(fnc.return_value(source, 'string', 'SETCHAR'))
+
+    string[index] = char
+    fnc.set_n_insert_val_type(source, 'string', "".join(string))
 
 
 def type_fnc(params: ET.Element):
-    pass
+    destination, source = fnc.check_params(params, 2, 'TYPE')
+    try:
+        src_type = fnc.return_value(source, '', 'TYPE')
+        fnc.set_n_insert_val_type(destination.text, 'type', src_type)
+    except:
+        fnc.write_log(32, fnc='TYPE')
 
 
 def jump_fnc(params: ET.Element):
@@ -168,25 +280,22 @@ def def_var_fnc(params: ET.Element):
 
     try:
         if params[0].attrib['type'] != 'var':
-            fnc.write_log(
-                "Type of parameter in DEFVAR is not 'var', but "
-                f"'{params[0].attrib['type']}'\n", 53)
+            fnc.write_log(53, '', fnc='DEFVAR', req_type='var',
+                          src_type=params[0].attrib['type'])
 
         frame, var = (re.findall(r'^(GF|LF|TF)@(\w*)$', params[0].text))[0]
         if var in [x['name'] for x in fnc.frames[frame]]:
-            fnc.write_log(
-                f"Variable {var} already defined in {frame} frame.\n", 52
-            )
+            fnc.write_log(52, '', var=var)
         fnc.frames[frame].append({'name': var, 'value': '', 'type': 'nil'})
     except:
-        fnc.write_log("Something wrong with parsing variables in DEFVAR\n", 32)
+        fnc.write_log(32, "Something wrong with parsing variables in DEFVAR\n")
 
 
 def add_fnc(params: ET.Element):
     """
     Function for handling opcode ADD
     Arguments:
-        * params: list of attributes of ElementTree Element  
+        * params: list of attributes of ElementTree Element
     """
     try:
         def_var, first_val, second_val = fnc.check_params(params, 3, 'ADD')
@@ -196,8 +305,7 @@ def add_fnc(params: ET.Element):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        raise
-        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
+        fnc.write_log(32, "Something wrong in TRY block of ADD function.\n")
 
 
 def concat_fnc(params: ET.Element):
@@ -214,6 +322,7 @@ def concat_fnc(params: ET.Element):
         ar = re.findall(r'\\(\d{3})', new_str)
         for a in ar:
             new_str = re.sub(r'\\{}'.format(a), chr(int(a)), new_str)
+        item['type'] = 'string'
         item['value'] = new_str
         fnc.set_value_in_frame(frame, item, index)
     except:
@@ -250,9 +359,8 @@ def move_fnc(params):
     dest_var, value = fnc.check_params(params, 2, 'MOVE')
 
     if dest_var.attrib['type'] != 'var':
-        fnc.write_log(
-            "Error in MOVE function. You can not move not to variable\n", 53
-        )
+        fnc.write_log(53, '', fnc='MOVE', req_type='var',
+                      src_type=dest_var.attrib['type'])
 
     frame, item, index = fnc.get_item_from_frame(dest_var.text)
     if value.attrib['type'] == 'var':
@@ -271,16 +379,14 @@ def label_fnc(params):
     if label.text not in fnc.list_labels:
         fnc.list_labels.append({label.text: params.attrib['order']})
     else:
-        fnc.write_log(
-            f"Label {label.text} already defined.\n", 52
-        )
+        fnc.write_log(52, '', var=label.text)
 
 
 def sub_fnc(params):
     """
     Function for handling 'SUB' operation code
     Arguments:
-        * params: list of attributes of ElementTree Element  
+        * params: list of attributes of ElementTree Element
     """
     try:
         def_var, first_val, second_val = fnc.check_params(params, 3, 'SUB')
@@ -290,7 +396,7 @@ def sub_fnc(params):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
+        fnc.write_log(32, "Something wrong in TRY block of ADD function.\n")
 
 
 def mul_fnc(params):
@@ -307,14 +413,14 @@ def mul_fnc(params):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
+        fnc.write_log(32, "Something wrong in TRY block of ADD function.\n")
 
 
 def idiv_fnc(params):
     """
     Function for handling opcode IDIV
     Arguments:
-        * params: list of attributes of ElementTree Element  
+        * params: list of attributes of ElementTree Element
     """
     try:
         def_var, first_val, second_val = fnc.check_params(params, 3, 'IDIV')
@@ -326,4 +432,4 @@ def idiv_fnc(params):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log("Something wrong in TRY block of ADD function.\n", 32)
+        fnc.write_log(32, "Something wrong in TRY block of IDIV function.\n")
