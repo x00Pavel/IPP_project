@@ -1,4 +1,5 @@
 <?php
+
 /**
  * \author Pavel Yadlouski (xyadlo00)
  * \project Interpret for IPPcode20 language 
@@ -27,7 +28,7 @@ $int_only = false;
 $recursive = false;
 $directory = './';
 $parse_script = './parse.php';
-$int_script = './interpret.py';
+$int_script = 'interpret.py';
 $jexamxml = null;
 if (shell_exec('pwd') == "/home/xyadlo00/studies/IPP/project\n") {
     $jexamxml = './JExamXML/jexamxml.jar';
@@ -138,83 +139,70 @@ fwrite(STDOUT, "<hr size=5>\n");
 
 $ok = "<span style=\"color:green\">&#10004</span>";
 $not_ok = "<span style=\"color:red\">&#10008</span>";
-if (!$int_only) {
-    $passed = 0;
-    $faled = 0;
+$passed = 0;
+$faled = 0;
 
-    $src_array = array();
-    $out_array = array();
-    $rc_array  = array();
-    $in_array = array();
-    if ($recursive) {
-        $dir   = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
-        $files = new RecursiveIteratorIterator($dir, RecursiveIteratorIterator::SELF_FIRST);
-        list($src_array, $out_array, $rc_array) = iterFiles($files);
-    } else {
-        $files = new DirectoryIterator($directory);
-        list($src_array, $out_array, $rc_array, $in_array) = iterFiles($files);
+$array = array();
+$files = null;
+if ($recursive) {
+    $dir   = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
+    $files = new RecursiveIteratorIterator($dir, RecursiveIteratorIterator::SELF_FIRST);
+} else {
+    $files = new DirectoryIterator($directory);
+}
+
+foreach ($files as $file) {
+    $name = $file->getPathname();
+    preg_match('/(\.\/.*\/(\w*))\.(src|out|rc|in)/', $name, $matches);
+    if (is_dir($name)) {
+        continue;
     }
+    $array[$matches[1]][$matches[3]] = $name;
+}
+$out_str_passed = "";
+$out_str_fault = "";
 
-    $out_str_passed = "";
-    $out_str_fault = "";
-
-    foreach ($src_array as $index => $file) {
-        shell_exec("php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <$file > tmp.my");
+if ($parse_only & !$int_only) {
+    foreach ($array as $path => $files) {
+        shell_exec("php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <" . $files['src'] . " > tmp.my");
         $return_code = shell_exec("echo $?");
-        $refer_code = null;
-        if ($index <= count($rc_array)) {
-            $refer_code = file_get_contents($rc_array[$index], false, NULL, 0);
-            if ($refer_code == "") {
-                $refer_code == "0";
-            }
-        } else {
+        $refer_code = file_get_contents($files['rc'], false, NULL, 0);
+        if ($refer_code == "") {
             $refer_code == "0";
         }
 
-
         if (strcmp("$return_code", $refer_code)) {
-            if ($index < count($out_array)) {
-                $out_file = $out_array[$index];
-                if (file_get_contents($out_file)) {
-                    $out = shell_exec("java -jar $jexamxml tmp.my " . $out_array[$index] . " tmp.diff");
-                    $xml_result = preg_match('/.*Two files are identical.*/', $out);
-                    if ($xml_result) {
-                        $out_str_passed = $out_str_passed . "<tr>
-                            <td>$file<td/>
-                            <td>" . $out_array[$index] . "<td/>
-                            <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$ok<td/>
-                        <tr/>";
-                        $passed++;
-                    } else {
-                        $out_str_passed = $out_str_passed . "<tr>
-                            <td>$file<td/>
-                            <td>" . $out_array[$index] . "<td/>
-                            <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$not_ok<td/>
-                        <tr/>";
-                        $faled++;
-                    }
-                } else {
+            $out_file = $files['out'];
+            if (file_get_contents($out_file)) {
+                $out = shell_exec("java -jar $jexamxml tmp.my " . $out_file . " tmp.diff");
+                $xml_result = preg_match('/.*Two files are identical.*/', $out);
+                if ($xml_result) {
                     $out_str_passed = $out_str_passed . "<tr>
-                        <td>$file<td/>
-                        <td>" . $out_array[$index] . "<td/>
+                        <td>" . $files['src'] . "<td/>
+                        <td>" . $out_file . "<td/>
                         <td>" . $refer_code . "<td/>
                         <td>$ok<td/>
                         <td>$ok<td/>
-                        <tr/>";
+                    <tr/>";
                     $passed++;
+                } else {
+                    $out_str_fault = $out_str_fault . "<tr>
+                        <td>" . $files['src'] . "<td/>
+                        <td>" . $out_file . "<td/>
+                        <td>" . $refer_code . "<td/>
+                        <td>$ok<td/>
+                        <td>$not_ok<td/>
+                    <tr/>";
+                    $faled++;
                 }
             } else {
-                $out_str_fault = $out_str_fault . "<b>No reference file (.out) for : $file</b><br/>\n";
+                $out_str_fault = $out_str_fault . "<b>No reference file (.out) for file " . $files['src'] . "</b><br/>\n";
                 $out_str_fault = $out_str_fault . "<hr size=5>\n";
             }
         } else {
-            $out_str_passed = $out_str_passed . "<tr>
-                <td>$file<td/>
-                <td>" . $out_array[$index] . "<td/>
+            $out_str_fault = $out_str_fault . "<tr>
+                <td>" . $files['src'] . "<td/>
+                <td>" . $out_file . "<td/>
                 <td>" . $refer_code . "<td/>
                 <td>$not_ok<td/>
                 <td>$not_ok<td/>
@@ -222,10 +210,142 @@ if (!$int_only) {
             $faled++;
         }
     }
+    shell_exec("rm tmp.my tmp.diff");
+} else if ($int_only & !$parse_only) {
+    foreach ($array as $path => $files) {
+        $cmd = "python3.7 $int_script --source=" . $files['src'];
+        if (array_key_exists("in", $file)) {
+            $cmd = $cmd . " --input=" . $files['in'];
+        }
+        $cmd_out = shell_exec($cmd." > tmp.txt");
+        $return_code = shell_exec("echo $?");
+        if (array_key_exists('rc', $files)) {
+            $refer_code = file_get_contents($files['rc'], false, NULL, 0);
+            if ($refer_code == '') {
+                $refer_code = 0;
+            }
+        } else {
+            $refer_code = 0;
+        }
+        if (strcmp("$return_code", $refer_code)) {
+            if (array_key_exists('out', $files)) {
+                $out_file = $files['out'];
+                if (file_get_contents($out_file)) {
+                    $out = shell_exec("diff $out_file tmp.txt");
+                    $cmp_result = strcmp("", $out);
+                    if ($cmp_result == 0) {
+                        $out_str_passed = $out_str_passed . "<tr>
+                            <td>" . $files['src'] . "<td/>
+                            <td>" . $out_file . "<td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$ok<td/>
+                        <tr/>";
+                        $passed++;
+                    } else {
+                        $out_str_fault = $out_str_fault . "<tr>
+                            <td>" . $files['src'] . "<td/>
+                            <td>" . $out_file . "<td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$not_ok<td/>
+                        <tr/>";
+                        $faled++;
+                    }
+                }
+            } else {
+                $out_str_passed = $out_str_passed . "<tr>
+                            <td>" . $files['src'] . "<td/>
+                            <td> No reference output <td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$ok<td/>
+                        <tr/>";
+                $passed++;
+            }
+        } else {
+            $out_str_fault = $out_str_fault . "<tr>
+            <td>" . $files['src'] . "<td/>
+            <td>" . $out_file . "<td/>
+            <td>" . $refer_code . "<td/>
+            <td>$not_ok<td/>
+            <td>$not_ok<td/>
+            <tr/>";
+            $faled++;
+        }
+    }
+    shell_exec("rm tmp.txt");
+}
+else if (!$int_only & !$parse_only){
+    foreach ($array as $path => $files) {
+        $cmd = "php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <" . $files['src'];
+        $cmd = $cmd. " | python3.7 $int_script";
+
+        if (array_key_exists("in", $file)) {
+            $cmd = $cmd . " --input=" . $files['in'];
+        }
+        
+        $cmd_out = shell_exec($cmd . " > tmp.txt");
+        $return_code = shell_exec("echo $?");
+        if (array_key_exists('rc', $files)) {
+            $refer_code = file_get_contents($files['rc'], false, NULL, 0);
+            if ($refer_code == '') {
+                $refer_code = 0;
+            }
+        } else {
+            $refer_code = 0;
+        }
+        if (strcmp("$return_code", $refer_code)) {
+            if (array_key_exists('out', $files)) {
+                $out_file = $files['out'];
+                if (file_get_contents($out_file)) {
+                    $out = shell_exec("diff $out_file tmp.txt");
+                    $cmp_result = strcmp("", $out);
+                    if ($cmp_result == 0) {
+                        $out_str_passed = $out_str_passed . "<tr>
+                            <td>" . $files['src'] . "<td/>
+                            <td>" . $out_file . "<td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$ok<td/>
+                        <tr/>";
+                        $passed++;
+                    } else {
+                        $out_str_fault = $out_str_fault . "<tr>
+                            <td>" . $files['src'] . "<td/>
+                            <td>" . $out_file . "<td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$not_ok<td/>
+                        <tr/>";
+                        $faled++;
+                    }
+                }
+            } else {
+                $out_str_passed = $out_str_passed . "<tr>
+                            <td>" . $files['src'] . "<td/>
+                            <td> No reference output <td/>
+                            <td>" . $refer_code . "<td/>
+                            <td>$ok<td/>
+                            <td>$ok<td/>
+                        <tr/>";
+                $passed++;
+            }
+        } else {
+            $out_str_fault = $out_str_fault . "<tr>
+            <td>" . $files['src'] . "<td/>
+            <td>" . $out_file . "<td/>
+            <td>" . $refer_code . "<td/>
+            <td>$not_ok<td/>
+            <td>$not_ok<td/>
+            <tr/>";
+            $faled++;
+        }
+    }
+    shell_exec("rm tmp.txt");
 }
 
 // Counting statistics
-shell_exec("rm tmp.my tmp.diff");
 $general = $passed + $faled;
 $par_passed = 0;
 if ($passed != 0) {
