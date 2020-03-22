@@ -1,5 +1,5 @@
 PARSER=parse.php
-INTERPRET=interpert.py
+INTERPRET=interpret.py
 TEST=test.php
 SRC_PARSE=tests/parse-only/
 XMLCMP=java -jar ./JExamXML/jexamxml.jar
@@ -9,20 +9,22 @@ NC=\033[0m # No Color
 IN=output.xml
 
 make:
+	# python3.7 interpert.py --source=tests/int-only/stack_test.src --input=input_file
 ifdef SOURCE
 	python3.7 ${INTERPRET} --source=${SOURCE} --input=input_file
 else
-	python3.7 ${INTERPRET} --source=${IN} --input=input_file
+	python3.7 ${INTERPRET} --source=${IN} 
 endif
 
 parse:
-	php7.3${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/for_test > output.xml
+	php7.3 ${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/parse-only/read_test.src > output.xml
 
 
 test_only:
 	# php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
-	php7.3 ${TEST} --parse-only --recursive --directory=./looool > output.html
-	# php ${TEST} --parse-only --recursive --directory=./tests/parse-only > output.html
+	# php7.3 ${TEST} --parse-only --recursive --directory=./tests/int-only
+	# php7.3 ${TEST} --int-only --recursive --directory=./tests/int-only
+	php7.3 ${TEST} --int-only --recursive --directory=./tests/int-only > output.html
 
 
 test_parse:
@@ -36,6 +38,11 @@ test_parse:
 	php7.3 ${PARSER} <${SRC_PARSE}write_test.src > ${SRC_PARSE}write_test.my
 	${XMLCMP} ${SRC_PARSE}write_test.my ${SRC_PARSE}write_test.out ${SRC_PARSE}write_test_diff.my
 		
+
+both:
+	# php7.3 ${TEST} --recursive --directory=./ipp-2020-tests/both/add > output.html
+	php7.3 ${TEST} --recursive --directory=./ipp-2020-tests/both/ > output.html
+	# php3.7 ${INTERPRET} < 
 
 clean:
 	php7.3 clean.php ./
