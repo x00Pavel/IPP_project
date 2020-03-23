@@ -153,7 +153,7 @@ if ($recursive) {
 
 foreach ($files as $file) {
     $name = $file->getPathname();
-    preg_match('/(\.\/.*\/(\w*))\.(src|out|rc|in)/', $name, $matches);
+    preg_match('/([\w\/-]*\/(\w*))\.(src|out|rc|in)/', $name, $matches);
     if (is_dir($name)) {
         continue;
     }
@@ -227,7 +227,7 @@ if ($parse_only & !$int_only) {
         } else {
             $refer_code = 0;
         }
-        if (strcmp("$return_code", $refer_code)) {
+        if (intval($return_code) == $refer_code) {
             if (array_key_exists('out', $files)) {
                 $out_file = $files['out'];
                 if (file_get_contents($out_file)) {
@@ -295,7 +295,8 @@ else if (!$int_only & !$parse_only){
         } else {
             $refer_code = 0;
         }
-        if (strcmp("$return_code", $refer_code)) {
+        print_r("FUCK HER --------------- ".intval($return_code) == intval($refer_code));
+        if (intval($return_code) == intval($refer_code)) {
             if (array_key_exists('out', $files)) {
                 $out_file = $files['out'];
                 if (file_get_contents($out_file)) {
@@ -334,7 +335,7 @@ else if (!$int_only & !$parse_only){
         } else {
             $out_str_fault = $out_str_fault . "<tr>
             <td>" . $files['src'] . "<td/>
-            <td>" . $out_file . "<td/>
+            <td>--<td/>
             <td>" . $refer_code . "<td/>
             <td>$not_ok<td/>
             <td>$not_ok<td/>

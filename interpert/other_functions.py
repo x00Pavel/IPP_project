@@ -10,35 +10,12 @@
 import sys
 import re
 import xml.etree.ElementTree as ET
+import interpert.errors as err
 
 list_labels = []
 list_var = []
 # frames = {'GF': gf, 'LF': LocalFrame, 'TF': TemporaryFrame}
 frames = {'GF': [], 'LF': [], 'TF': None}
-
-
-class OrderError(Exception):
-    pass
-
-
-def write_log(err_code=None, msg='', **kwargs):
-    """
-    Function for writing down logs to STDERR and exiting with given error code
-    """
-    if msg == '':
-        if err_code == 58:
-            msg = f"Error in processing string in function {kwargs['fnc']}"
-        elif err_code == 53:
-            msg = f"Wrong type of argument in function '{kwargs['fnc']}'. " \
-                f"Required '{kwargs['req_type']}' type, but you have '{kwargs['src_type']}'.\n"
-        elif err_code == 52:
-            msg = "Error in semantic control. Maybe caused be using of undefined" \
-                f" label or redefinition of variable: {kwargs['var']}"
-        elif err_code == 32:
-            msg = f"Unexpected structure of XML file in function '{kwargs['fnc']}'.\n"
-    sys.stderr.write(str(msg))
-    if err_code is not None:
-        sys.exit(err_code)
 
 
 class GlobalFrame():
@@ -52,13 +29,13 @@ class GlobalFrame():
             global_frame.append(var)
             LocalFrame.local_frame[0] = global_frame
         else:
-            write_log(32)
+            raise err.Err_32("In global frame")
 
     def insert(self, var_to_insert: dict, index: int):
         try:
             global_frame[index] = var_to_insert
         except:
-            write_log(32)
+            raise err.Err_32("In global frame")
             # write_log("""Error in seting new value in dict in global frame.
             # Maybe some of indexes is not exits.""", 32)
 
@@ -84,11 +61,7 @@ class LocalFrame(GlobalFrame):
             local_frame[-1][index] = var_to_insert
             # print(frames[frame][index])
         except:
-            write_log(32)
-        #     write_log("""Error in seting new value in dict in local frame.
-        #     Maybe some of indexes is not exits.""", 32)
-        # except:
-        #     write_log("Error in inserting new value in set_value.", 32)
+            raise err.Err_32("In Local frame")
 
     def get_list(self):
         return local_frame.pop()
@@ -108,7 +81,8 @@ class TemporaryFrame(GlobalFrame):
             self.temporary_frame[index] = var_to_insert
             # print(frames[frame][index])
         except:
-            write_log(32)
+            raise err.Err_32("In temporary frame")
+
         #     write_log("""Error in seting new value in temporay frame.
         #     Maybe some of indexes is not exits.""", 32)
         # except:
@@ -162,27 +136,30 @@ def get_frame_n_var(variable: str):
         frame, var = (re.findall(
             r'^(GF|LF|TF)@(\w*)$', variable))[0]
     except:
-        write_log(
-            31, msg=f"Men, I can't split this text {variable} to frame and name.\n")
+        raise err.Err_31(None, fnc='get_frame_v_var')
     return (frame, var)
 
 
 def check_params(params: ET.Element, cnt: int, fnc: str = None):
     if len(params) != cnt:
-        write_log(32, msg=f"Wrong count of parameters in function {fnc}. "
+        raise err.Err_32(f"Wrong count of parameters in function {fnc}. "
                   f"Required {len(params)}, but you have {cnt}.\n",
                   )
 
     if fnc == 'CALL' or fnc == 'LABEL':
         if params[0].attrib['type'] != 'label':
-            write_log(53, fnc=fnc, req_type='label',
-                      src_type=params[0].attrib['type'])
+            raise err.Err_53(None, 'CALL', req_type='label',
+                       src_type=params[0].attrib['type'])
+            # write_log(53, fnc=fnc, req_type='label',
+            #           src_type=params[0].attrib['type'])
         else:
             return params[0].text
     elif fnc == 'POPS':
         if params[0].attrib['type'] != 'var':
-            write_log(53, fnc='POPS', req_type='var',
-                      src_type=params[0].attrib['type'])
+            raise err.Err_53(None, fnc='POPS', req_type='var',
+                             src_type=params[0].attrib['type'])
+            # write_log(53, fnc='POPS', req_type='var',
+            #           src_type=params[0].attrib['type'])
     elif fnc == 'PUSHS':
         pass
     elif fnc == 'WRITE':
@@ -204,7 +181,8 @@ def check_params(params: ET.Element, cnt: int, fnc: str = None):
         src = params[1]
         ind = params[2]
         if dst.attrib['type'] != 'var':
-            write_log(53, fnc=fnc, req_type='var', src_type=dst.attrib['type'])
+            raise err.Err_53(None, fnc=fnc, req_type='var',
+                             src_type=dst.attrib['type'])
         return (dst, src, ind)
     elif fnc == 'TYPE' or \
             fnc == 'MOVE' or \
@@ -214,18 +192,30 @@ def check_params(params: ET.Element, cnt: int, fnc: str = None):
         dst = params[0]
         src = params[1]
         if dst.attrib['type'] != 'var':
-            write_log(53, fnc=fnc, req_type='var', src_type=dst.attrib['type'])
+            raise err.Err_53(None, fnc=fnc, req_type='var',
+                             src_type=dst.attrib['type'])
         return (dst, src)
 
 
 def get_item_from_frame(var: str) -> tuple:
     frame, var = get_frame_n_var(var)
     frame_list = get_frame_list(frame)
-    for item in frame_list:
-        if var == item['name']:
-            return (frame, item, frame_list.index(item))
-    write_log(
-        msg=f"Given variabel is not defined in given scope ({frame}).\n", err_code=32)
+    try:
+        for item in frame_list:
+            if var == item['name']:
+                return (frame, item, frame_list.index(item))
+    except TypeError:
+        raise err.Err_55(
+                    f"Given variabel ({var}) is not defined in given scope ({frame}).\n")
+
+
+def get_type(var: ET.ElementTree) -> str:
+    if var.attrib['type'] == 'var':
+        args = get_item_from_frame(var.text)
+        item = args[1]
+        return item['type']
+    else:
+        return var.attrib['type']
 
 
 def set_value_in_frame(frame: str, var_to_insert: dict, index: int):
@@ -235,10 +225,13 @@ def set_value_in_frame(frame: str, var_to_insert: dict, index: int):
         frames[frame][index]['type'] = var_to_insert['type']
         # print(frames[frame][index])
     except KeyError:
-        write_log(msg="""Error in seting new value in dict in set_value.
-        Maybe some of indexes is not exits.""", err_code=53)
+        raise err.Err_53("""Error in seting new value in dict in set_value.
+        Maybe some of indexes is not exits.""")
+        # write_log(msg="""Error in seting new value in dict in set_value.
+        # Maybe some of indexes is not exits.""", err_code=53)
     except:
-        write_log(msg="Error in inserting new value in set_value.", err_code=32)
+        raise err.Err_32("Error in inserting new value in set_value.")
+        # write_log(msg="Error in inserting new value in set_value.", err_code=32)
 
 
 def return_value(var: ET.ElementTree, req_type: str, fnc: str = ''):
@@ -249,7 +242,9 @@ def return_value(var: ET.ElementTree, req_type: str, fnc: str = ''):
         if fnc == 'TYPE':
             return item['type']
         if item['type'] != req_type:
-            write_log(53, '', fnc=fnc, req_type=req_type, src_type=item['type'])
+            raise err.Err_53(None, fnc=fnc, req_type=req_type,
+                             src_type=item['type'])
+            # write_log(53, '', fnc=fnc, req_type=req_type, src_type=item['type'])
         else:
             tmp = item['value']
     elif fnc == 'TYPE':
@@ -257,8 +252,8 @@ def return_value(var: ET.ElementTree, req_type: str, fnc: str = ''):
     elif var.attrib['type'] == req_type:
         tmp = var.text
     else:
-        write_log(53, '', fnc=fnc, req_type=req_type,
-                  src_type=var.attrib['type'])
+        raise err.Err_53(None, fnc=fnc, req_type=req_type,
+                         src_type=var.attrib['type'])
     return tmp
 
 
@@ -270,10 +265,6 @@ def set_n_insert_val_type(dst: str, src_type: str, src_value):
 
 
 def check_math(def_var, first_val, second_val, ref_type='int'):
-    if def_var.attrib['type'] != 'var':
-        write_log(53, None, fnc='check_math', req_type='var',
-                  src_type=def_var.attrib['type'])
-
     # Extracting information to correct processing of operaion
 
     frame, item, index = get_item_from_frame(def_var.text)
@@ -286,6 +277,8 @@ def check_math(def_var, first_val, second_val, ref_type='int'):
             return [int(first), int(second)]
         elif ref_type == 'string':
             return [first, second]
+        elif ref_type == 'bool':
+            return (bool(first), second)
 
     if first_type == ref_type and second_type == ref_type:
         args = return_list(first_val.text, second_val.text)
@@ -297,24 +290,28 @@ def check_math(def_var, first_val, second_val, ref_type='int'):
                 second_val.text)
             # Extract variable to write down
             if(var_item['type'] != ref_type):
-                write_log(53, None, fnc='check_math',
-                          req_type=ref_type, src_type=var_item['type'])
+                raise err.Err_53(None, fnc='check_math', req_type=ref_type,
+                                 src_type=var_item['type'])
             args = return_list(first_val.text, var_item['value'])
         except:
-            write_log(msg="Something wrong in TRY block of ADD function when "
-                      "there is variable as second parameter\n", err_code=32)
+            raise err.Err_32("Something wrong in TRY block of ADD function when "
+                       "there is variable as second parameter\n")
+            # write_log(msg="Something wrong in TRY block of ADD function when "
+            #           "there is variable as second parameter\n", err_code=32)
     elif first_type == 'var' and second_type == ref_type:
         try:
             # Extract variable to write down
             var_frame, var_item, var_index = get_item_from_frame(first_val.text)
             if(var_item['type'] != ref_type):
-                write_log(53, None, fnc='check_math',
-                          req_type=ref_type, src_type=var_item['type'])
+                raise err.Err_53(None, fnc='check_math', req_type=ref_type,
+                                 src_type=var_item['type'])
             args = return_list(var_item['value'], second_val.text)
         except:
-            write_log(
-                msg="Something wrong in TRY block of ADD function when "
-                "there is variable as first parameter in first TRY block\n", err_code=32)
+            raise err.Err_32("Something wrong in TRY block of ADD function when "
+                             "there is variable as first parameter in first TRY block\n")
+            # write_log(
+            #     msg="Something wrong in TRY block of ADD function when "
+            #     "there is variable as first parameter in first TRY block\n", err_code=32)
     elif first_type == 'var' and second_type == 'var':
         try:
             # Extract value from given variable
@@ -325,15 +322,14 @@ def check_math(def_var, first_val, second_val, ref_type='int'):
                 second_val.text)
             # Extract variable to write down
             if(item_of_var_1['type'] != 'int' or item_of_var_2['type'] != 'int'):
-                write_log(53, None, fnc='check_math',
-                          req_type=ref_type, src_type=var_item['type'])
+                raise err.Err_53(None, fnc='check_math', req_type=ref_type,
+                                 src_type=var_item['type'])
             args = return_list(item_of_var_1['value'], item_of_var_2['value'])
         except:
-            write_log(
-                msg="Something wrong in TRY block of ADD function when there is"
-                " variable as second parameter in last TRY.\n", err_code=32)
+            raise err.Err_32("Something wrong in TRY block of ADD function when there is"
+                             " variable as second parameter in last TRY.\n")
     else:
-        write_log(
-            53, msg=f"Wrong type for math function {first_type} and {second_type}.\n")
+        raise err.Err_53(
+            f"Wrong type for math function {first_type} and {second_type}.\n")
 
     return (frame, item, index, args)

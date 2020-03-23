@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 import pprint as pp
 import interpert.opcodes as ops
 import interpert.other_functions as fnc
-
+import interpert.errors as err
 source_file = None
 input_file = None
 
@@ -34,13 +34,12 @@ def main(*args, **kwargs):
             args, 'h', ['input=', 'source=', 'help'])
         params = dict(params)
     except getopt.GetoptError:
-        fnc.write_log(
-            "You did not specified required argument of parameter\n", 10)
+        raise err.Err_10()
 
     if '--help' in params.keys():
         if len(params.keys()) != 1 | len(arguments) != 0:
-            fnc.write_log("Parameter '--help' can't be combined with other "
-                          "parameters or arguments\n", 10)
+            raise err.Err_10("Parameter '--help' can't be combined with other "
+                             "parameters or arguments\n")
         else:
             sys.stdout.write(
                 "Program načte XML reprezentaci programu a tento program s "
@@ -58,11 +57,13 @@ def main(*args, **kwargs):
         try:
             source_file = ET.parse(params['--source'])
         except IOError:
-            fnc.write_log(99, msg="File {} does not exist or can't be open to read\n"
-                          .format(params['--source'])if params['--source'] != ''
-                          else "You did not specified file for some parameter\n")
+            raise err.Err_99("File {} does not exist or can't be open to read\n"
+                             .format(params['--source'])if params['--source'] != ''
+                             else "You did not specified file for some parameter\n")
+
         except ET.ParseError:
-            fnc.write_log(32, "There is something wrong with tags while parsing XML.\n")
+            raise err.Err_32(
+                "There is something wrong with tags while parsing XML.\n")
     if '--input' in params.keys():
         input_file = params['--input']
         try:
@@ -70,9 +71,9 @@ def main(*args, **kwargs):
                 input_file = f.read()
                 input_file = input_file.split('\n')
         except IOError:
-            fnc.write_log(99, msg=f"File {params['--input']} does not exist or can't be "
-                          "open to read\n") if params['--input'] != '' \
-                else "You did not specified file for some parameter\n"
+            raise err.Err_99(f"File {params['--input']} does not exist or can't be "
+                             "open to read\n" if params['--input'] != ''
+                             else "You did not specified file for some parameter\n")
 
     if source_file is None:
         try:
@@ -83,8 +84,9 @@ def main(*args, **kwargs):
             os.remove('tmp.xml')
 
         except:
-            fnc.write_log(msg="Error while reading code from STDIN."
-                          "Maybe error in creating temporary file\n", err_code=99)
+            raise err.Err_99("Error while reading code from STDIN."
+                          "Maybe error in creating temporary file\n")
+
 
 fnc_dict = {'ADD': ops.add_fnc,
             'SUB': ops.sub_fnc,
@@ -107,7 +109,13 @@ fnc_dict = {'ADD': ops.add_fnc,
             'TYPE': ops.type_fnc,
             'CONCAT': ops.concat_fnc,
             'READ': ops.read_fnc,
-            'STRLEN': ops.strlen_fnc
+            'STRLEN': ops.strlen_fnc,
+            'AND': ops.and_fnc,
+            'OR': ops.or_fnc,
+            'NOT': ops.not_fnc,
+            'EQ': ops.equal_fnc,
+            'LT': ops.less_fnc,
+            'GT': ops.greater_fnc
             }
 
 
@@ -123,7 +131,7 @@ def process_xml(xml_file):
         if child.tag != 'program':
             try:
                 if order > int(child.attrib['order']):
-                    raise fnc.OrderError
+                    raise err.OrderError(order, int(child.attrib['order']))
                 order = int(child.attrib['order'])
                 opcode = child.attrib['opcode']
                 function = fnc_dict[opcode.upper()]
@@ -133,15 +141,44 @@ def process_xml(xml_file):
                         input_file.pop(0)
                 else:
                     function(child)
-            except fnc.OrderError:
-                fnc.write_log(32, msg=f"Wrong order:{child.attrib['order']}\n"\
-                                f"Current order must be greater then: {order}\n")
+
             except KeyError:
-                fnc.write_log(32, msg="No reference to function for"\
-                    f" operation code {opcode}.\n")
+                raise err.Err_32("No reference to function for"
+                                 f" operation code {opcode}.\n")
             except:
-                fnc.write_log(32, fnc = opcode)
+                raise err.Err_32(fnc=opcode)
+
 
 if __name__ == "__main__":
-    main()
-    process_xml(source_file)
+    try:
+        main()
+        process_xml(source_file)
+    except:
+        raise
+    # except (err.OrderError, err.Err_32) as err:
+    #     sys.stderr.write(err.msg)
+    #     exit(32)
+    # except err.Err_31 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(31)
+    # except err.Err_52 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(52)
+    # except err.Err_53 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(53)
+    # except err.Err_54 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(54)
+    # except err.Err_55 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(55)
+    # except err.Err_56 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(56)
+    # except err.Err_57 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(57)
+    # except err.Err_58 as err:
+    #     sys.stderr.write(str(err.msg))
+    #     exit(58)

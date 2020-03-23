@@ -9,6 +9,7 @@
 """
 import xml.etree.ElementTree as ET
 import interpert.other_functions as fnc
+import interpert.errors as err
 
 import pprint as pp
 import sys
@@ -36,7 +37,7 @@ def call_fnc(params: ET.Element):
     label = fnc.check_params(params, 1, 'CALL')
 
     if label not in fnc.list_labels.keys():
-        fnc.write_log(f"Label {label} is not specified yet.\n", 52)
+        raise err.Err_52(f"Label {label} is not specified yet.\n")
 
 
 # Don't have arguments
@@ -62,26 +63,117 @@ def pops_fnc(params: ET.Element):
 
 
 def less_fnc(params: ET.Element):
-    pass
+    destination, first, second = fnc.check_params(params, 3, 'LT')
+    first_type = fnc.get_type(first)
+    second_type = fnc.get_type(second)
+
+    if first_type != second_type or first_type == 'nil' or second_type == 'nil':
+        raise err.Err_53(None, fnc='LT',
+                         req_type=first_type, src_type=second_type)
+
+    first_val = fnc.return_value(first, first_type, 'LT')
+    second_val = fnc.return_value(second, second_type, 'LT')
+
+    result = None
+    if first_type == 'int':
+        result = int(first_val) < int(second_val)
+    elif first_type == 'string':
+        result = len(first_val) < len(second_val)
+    elif first_type == 'bool':
+        if first_val == 'true' and second_val != 'true':
+            result = 'false'
+        elif first_val != 'true' and second_val == 'true':
+            result = 'true'
+        elif first_val != 'true' and second_val != 'true' or \
+                first_val == 'true' and second_val == 'true':
+            result = 'false'
+
+    fnc.set_n_insert_val_type(destination, 'bool', result)
 
 
 def greater_fnc(params: ET.Element):
-    pass
+    destination, first, second = fnc.check_params(params, 3, 'GT')
+    first_type = fnc.get_type(first)
+    second_type = fnc.get_type(second)
+
+    if first_type != second_type or first_type == 'nil' or second_type == 'nil':
+        raise err.Err_53(None, fnc='GT',
+                         req_type=first_type, src_type=second_type)
+
+    first_val = fnc.return_value(first, first_type, 'GT')
+    second_val = fnc.return_value(second, second_type, 'GT')
+
+    result = None
+    if first_type == 'int':
+        result = int(first_val) > int(second_val)
+    elif first_type == 'string':
+        result = len(first_val) > len(second_val)
+    elif first_type == 'bool':
+        if first_val == 'true' and second_val == 'false':
+            result = 'true'
+        elif first_val == 'false' and second_val == 'true':
+            result = 'false'
+        elif first_val != 'true' and second_val != 'true' or \
+                first_val == 'true' and second_val == 'true':
+            result = 'false'
+
+    fnc.set_n_insert_val_type(destination, 'bool', result)
 
 
 def equal_fnc(params: ET.Element):
-    pass
+    destination, first, second = fnc.check_params(params, 3, 'EQ')
+    first_type = fnc.get_type(first)
+    second_type = fnc.get_type(second)
+
+    result = None
+
+    if first_type == 'nil':
+        if second_type == 'nil':
+            result = 'true'
+        else:
+            result = 'false'
+    elif second_type == 'nil':
+        if first_type == 'nil':
+            result = 'true'
+        else:
+            result = 'false'
+    else:
+        first_val = fnc.return_value(first, first_type, 'EQ')
+        second_val = fnc.return_value(second, second_type, 'EQ')
+
+        if first_type == 'int':
+            result = int(first_val) == int(second_val)
+        elif first_type == 'string':
+            result = first_val == second_val
+        elif first_type == 'bool':
+            if first_val != 'true' and second_val != 'true' or \
+                    first_val == 'true' and second_val == 'true':
+                result = 'true'
+            else:
+                result = 'false'
+        else:
+            raise err.Err_53(None, fnc='EQ',
+                             req_type=first_type, src_type=second_type)
+
+    fnc.set_n_insert_val_type(destination, 'bool', result)
 
 
 def and_fnc(params: ET.Element):
     destination, first, second = fnc.check_params(params, 3, 'AND')
-    try:
-        first = fnc.return_value(first, 'bool', 'AND')
-        second = fnc.return_value(second, 'bool', 'AND')
+    first = fnc.return_value(first, 'bool', 'AND')
+    second = fnc.return_value(second, 'bool', 'AND')
+    if (first == 'true' and second == 'true'):
         fnc.set_n_insert_val_type(
-            destination.text, 'bool', str(first and second))
-    except:
-        fnc.write_log(32, fnc='AND')
+            destination.text, 'bool', 'true')
+    elif first == 'false' and second == 'false':
+        fnc.set_n_insert_val_type(
+            destination.text, 'bool', 'false')
+    elif (first == 'true' and second == 'false') or \
+            (first == 'false' and second == 'true'):
+        fnc.set_n_insert_val_type(
+            destination.text, 'bool', 'false')
+    else:
+        raise fnc.ERROR_32
 
 
 def or_fnc(params: ET.Element):
@@ -92,7 +184,7 @@ def or_fnc(params: ET.Element):
         fnc.set_n_insert_val_type(
             destination.text, 'bool', str(first or second))
     except:
-        fnc.write_log(32, fnc='OR')
+        raise err.Err_32('Error in OR function.\n')
 
 
 def not_fnc(params: ET.Element):
@@ -101,7 +193,7 @@ def not_fnc(params: ET.Element):
         first = fnc.return_value(first, 'bool', 'NOT')
         fnc.set_n_insert_val_type(destination.text, 'bool', str(not first))
     except:
-        fnc.write_log(32, fnc='NOT')
+        raise err.Err_32('Error in NOT function.\n')
 
 
 def int_2_char_fnc(params: ET.Element):
@@ -118,15 +210,14 @@ def int_2_char_fnc(params: ET.Element):
         src_val = source.text
 
     if src_type != 'int':
-        fnc.write_log(53, '', fnc='INT2CHAR', req_type='int', src_type=src_type)
+        raise err.Err_53(None, fnc='INT2CHAR',
+                         req_type='int', src_type=src_type)
     try:
         item['value'] = chr(int(src_val))
         item['type'] = 'string'
     except:
-        fnc.write_log(
-            f"Value '{src_val}' can't be converted from 'int' type to "
-            "'string' type.\n", 58
-        )
+        raise err.Err_58(f"Value '{src_val}' can't be converted from 'int' type to "
+                         "'string' type.\n")
     fnc.set_value_in_frame(frame, item, index)
 
 
@@ -136,49 +227,51 @@ def str_2_int_fnc(params: ET.Element):
     if string.attrib['type'] == 'var':
         str_frame, str_item, str_index = fnc.get_item_from_frame(string.text)
         if str_item['type'] != 'string':
-            fnc.write_log(53, fnc='STRI2INT', req_type='string',
-                          src_type=str_item['type'])
+            raise err.Err_53(None, fnc='STRI2INT', req_type='string',
+                             src_type=str_item['type'])
+
         string = str_item['value']
     elif string.attrib['type'] == 'string':
         string = string.text
     else:
-        fnc.write_log(53, fnc='STRI2INT', req_type='string/var',
-                      src_type=str_item['type'])
+        raise err.Err_53(None, fnc='STRI2INT', req_type='string/var',
+                         src_type=str_item['type'])
 
     if index_of_char.attrib['type'] == 'var':
         ind_frame, ind_item, ind_index = fnc.get_item_from_frame(
             index_of_char.text)
         if ind_item['type'] != 'int':
-            fnc.write_log(53, fnc='STRI2INT', req_type='int',
-                          src_type=str_item['type'])
+            raise err.Err_53(None, fnc='STRI2INT', req_type='int',
+                             src_type=str_item['type'])
+
         try:
             index_of_char = int(ind_item['value'])
         except:
-            fnc.write_log(58, fnc='STRI2INT')
+            raise err.Err_58(
+                f"Value '{ind_item['value']}' can't be converted to 'int'.\n")
     elif index_of_char.attrib['type'] == 'int':
         try:
             index_of_char = int(index_of_char.text)
         except:
-            fnc.write_log(58, fnc='STRI2INT')
-
+            raise err.Err_58(
+                f"Value '{index_of_char.text}' can't be converted to 'int'.\n")
     if index_of_char < 0:
-        fnc.write_log(58, fnc='STRI2INT')
-
+        raise err.Err_58(fnc='STRI2INT')
     try:
         char = string[index_of_char]
         item['value'] = ord(char)
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log(58, fnc='STRI2INT')
+        raise err.Err_58(fnc='STRI2INT')
 
 
 def read_fnc(params: ET.Element, input_file):
 
     destination, type_ = fnc.check_params(params, 2, 'READ')
     if type_.attrib['type'] != 'type':
-        fnc.write_log(53, '', fnc='READ', req_type='type',
-                      src_type=type_.attrib['type'])
+        raise err.Err_53(None, fnc='READ', req_type='type',
+                         src_type=type_.attrib['type'])
     try:
         var = ''
         if input_file is None:
@@ -199,13 +292,13 @@ def read_fnc(params: ET.Element, input_file):
             else:
                 var = 'false'
         else:
-            fnc.write_log(58, fnc='READ')
+            raise err.Err_58(fnc='READ')
 
         item['value'] = var
         item['type'] = type_.text if var != 'nil' else 'nil'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log(32, fnc='READ')
+        raise err.Err_32(fnc='READ')
 
 
 def strlen_fnc(params: ET.Element):
@@ -214,7 +307,7 @@ def strlen_fnc(params: ET.Element):
         value = fnc.return_value(source, 'string', 'STRLEN')
         fnc.set_n_insert_val_type(destination.text, 'int', len(value))
     except:
-        fnc.write_log(32, fnc='STRLEN')
+        raise err.Err_32(fnc='STRLEN')
 
 
 def get_char_fnc(params: ET.Element):
@@ -224,7 +317,7 @@ def get_char_fnc(params: ET.Element):
     index = int(fnc.return_value(index, 'int', 'GETCHAR'))
 
     if index > len(string):
-        fnc.write_log(58, '', fnc='GETCHAR')
+        raise err.Err_58(fnc='GETCHAR')
     else:
         fnc.set_n_insert_val_type(destination.text, 'string', string[index])
 
@@ -246,7 +339,7 @@ def type_fnc(params: ET.Element):
         src_type = fnc.return_value(source, '', 'TYPE')
         fnc.set_n_insert_val_type(destination.text, 'type', src_type)
     except:
-        fnc.write_log(32, fnc='TYPE')
+        raise err.Err_32(fnc='TYPE')
 
 
 def jump_fnc(params: ET.Element):
@@ -276,19 +369,19 @@ def break_fnc(params: ET.Element):
 def def_var_fnc(params: ET.Element):
     # TODO split by @ and append to corresponding list of variables
     if (len(params) != 1):
-        fnc.write_log("Wrong count of parameters while defining LABEL\n", 32)
+        raise err.Err_32("Wrong count of parameters while defining LABEL\n")
 
     try:
         if params[0].attrib['type'] != 'var':
-            fnc.write_log(53, '', fnc='DEFVAR', req_type='var',
-                          src_type=params[0].attrib['type'])
+            raise err.Err_53(None, fnc='DEFVAR', req_type='var',
+                             src_type=params[0].attrib['type'])
 
         frame, var = (re.findall(r'^(GF|LF|TF)@(\w*)$', params[0].text))[0]
         if var in [x['name'] for x in fnc.frames[frame]]:
-            fnc.write_log(52, '', var=var)
+            raise err.Err_52(var=var)
         fnc.frames[frame].append({'name': var, 'value': '', 'type': 'nil'})
     except:
-        fnc.write_log(32, "Something wrong with parsing variables in DEFVAR\n")
+        raise err.Err_32("Something wrong with parsing variables in DEFVAR\n")
 
 
 def add_fnc(params: ET.Element):
@@ -305,7 +398,7 @@ def add_fnc(params: ET.Element):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log(32, "Something wrong in TRY block of ADD function.\n")
+        raise err.Err_32("Something wrong in TRY block of ADD function.\n")
 
 
 def concat_fnc(params: ET.Element):
@@ -326,8 +419,7 @@ def concat_fnc(params: ET.Element):
         item['value'] = new_str
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log(
-            "Something wrong in TRY block of CONCAT", 32)
+        raise err.Err_32("Something wrong in TRY block of CONCAT.\n")
 
 
 def write_fnc(params: ET.Element):
@@ -359,8 +451,8 @@ def move_fnc(params):
     dest_var, value = fnc.check_params(params, 2, 'MOVE')
 
     if dest_var.attrib['type'] != 'var':
-        fnc.write_log(53, '', fnc='MOVE', req_type='var',
-                      src_type=dest_var.attrib['type'])
+        raise err.Err_53(None, fnc='MOVE', req_type='var',
+                         src_type=dest_var.attrib['type'])
 
     frame, item, index = fnc.get_item_from_frame(dest_var.text)
     if value.attrib['type'] == 'var':
@@ -379,7 +471,7 @@ def label_fnc(params):
     if label.text not in fnc.list_labels:
         fnc.list_labels.append({label.text: params.attrib['order']})
     else:
-        fnc.write_log(52, '', var=label.text)
+        raise err.Err_52(var=label.text)
 
 
 def sub_fnc(params):
@@ -396,7 +488,7 @@ def sub_fnc(params):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log(32, "Something wrong in TRY block of ADD function.\n")
+        raise err.Err_32("Something wrong in TRY block of ADD function.\n")
 
 
 def mul_fnc(params):
@@ -413,7 +505,7 @@ def mul_fnc(params):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log(32, "Something wrong in TRY block of ADD function.\n")
+        raise err.Err_32("Something wrong in TRY block of ADD function.\n")
 
 
 def idiv_fnc(params):
@@ -427,9 +519,9 @@ def idiv_fnc(params):
         frame, item, index, args = fnc.check_math(
             def_var, first_val, second_val)
         if 0 in args:
-            fnc.write_log("There is devision by zero.\n", 57)
+            raise err.Err_57("There is devision by zero.\n")
         item['value'] = args[0] + args[1]
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        fnc.write_log(32, "Something wrong in TRY block of IDIV function.\n")
+        raise err.Err_32("Something wrong in TRY block of IDIV function.\n")
