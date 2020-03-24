@@ -153,11 +153,16 @@ if ($recursive) {
 
 foreach ($files as $file) {
     $name = $file->getPathname();
-    preg_match('/([\w\/-]*\/(\w*))\.(src|out|rc|in)/', $name, $matches);
+    preg_match('/(.*\/(.*))\.(src|out|rc|in)/', $name, $matches);
     if (is_dir($name)) {
         continue;
     }
-    $array[$matches[1]][$matches[3]] = $name;
+    if (count($matches) != 4){
+        continue;
+    }
+    else{
+        $array[$matches[1]][$matches[3]] = $name;
+    }
 }
 $out_str_passed = "";
 $out_str_fault = "";
@@ -285,8 +290,8 @@ else if (!$int_only & !$parse_only){
             $cmd = $cmd . " --input=" . $files['in'];
         }
         
-        $cmd_out = shell_exec($cmd . " > tmp.txt");
-        $return_code = shell_exec("echo $?");
+        $cmd_out = exec($cmd."> tmp.txt", $o, $return_code );
+
         if (array_key_exists('rc', $files)) {
             $refer_code = file_get_contents($files['rc'], false, NULL, 0);
             if ($refer_code == '') {
@@ -295,7 +300,6 @@ else if (!$int_only & !$parse_only){
         } else {
             $refer_code = 0;
         }
-        print_r("FUCK HER --------------- ".intval($return_code) == intval($refer_code));
         if (intval($return_code) == intval($refer_code)) {
             if (array_key_exists('out', $files)) {
                 $out_file = $files['out'];

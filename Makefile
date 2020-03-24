@@ -16,15 +16,18 @@ else
 	python3.7 ${INTERPRET} --source=${IN} 
 endif
 
+err:
+	php7.3 ${PARSER} < ${SRC} > out.xml
+	python3.7 ${INTERPRET} --source=out.xml
 parse:
 	php7.3 ${PARSER} --stats=./tests/stats --comments --loc --labels --jumps --comments <./tests/parse-only/read_test.src > output.xml
 
 
 test_only:
-	# php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only > output.html
+	php7.3 ${TEST} --parse-only --recursive --directory=./ipp-2020-tests/parse-only 
 	# php7.3 ${TEST} --parse-only --recursive --directory=./tests/int-only
-	# php7.3 ${TEST} --int-only --recursive --directory=./tests/int-only
-	php7.3 ${TEST} --int-only --recursive --directory=./tests/int-only > output.html
+	# php7.3 ${TEST} --parse-only --recursive --directory=./tests/parse-onsly > output.html
+	# php7.3 ${TEST} --int-only --recursive --directory=./tests/int-only > output.html
 
 
 test_parse:
@@ -41,7 +44,7 @@ test_parse:
 
 both:
 	# php7.3 ${TEST} --recursive --directory=./ipp-2020-tests/both/add > output.html
-	php7.3 ${TEST} --recursive --directory=./ipp-2020-tests/both/ > output.html
+	php7.3 ${TEST} --recursive --directory=./ipp-2020-tests/both/
 	# php3.7 ${INTERPRET} < 
 
 clean:

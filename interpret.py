@@ -129,56 +129,57 @@ def process_xml(xml_file):
 
     for child in root:
         if child.tag != 'program':
-            try:
-                if order > int(child.attrib['order']):
-                    raise err.OrderError(order, int(child.attrib['order']))
-                order = int(child.attrib['order'])
-                opcode = child.attrib['opcode']
-                function = fnc_dict[opcode.upper()]
-                if opcode.upper() == 'READ':
-                    function(child, input_file)
-                    if input_file is not None:
-                        input_file.pop(0)
-                else:
-                    function(child)
+            # try:
+            if order > int(child.attrib['order']):
+                raise err.OrderError(order, int(child.attrib['order']))
+            order = int(child.attrib['order'])
+            opcode = child.attrib['opcode']
+            function = fnc_dict[opcode.upper()]
+            if opcode.upper() == 'READ':
+                function(child, input_file)
+                if input_file is not None:
+                    input_file.pop(0)
+            elif opcode.upper() == 'JUMP':
+                for item in root.find('LABEL'):
+                    ET.dump(item)
+            else:
+                function(child)
 
-            except KeyError:
-                raise err.Err_32("No reference to function for"
-                                 f" operation code {opcode}.\n")
-            except:
-                raise err.Err_32(fnc=opcode)
+            # except KeyError:
+            #     raise err.Err_32("No reference to function for"
+            #                      f" operation code {opcode}.\n")
 
 
 if __name__ == "__main__":
     try:
         main()
         process_xml(source_file)
+    except (err.OrderError, err.Err_32) as err:
+        sys.stderr.write(err.msg)
+        exit(32)
+    except err.Err_31 as err:
+        sys.stderr.write(str(err.msg))
+        exit(31)
+    except err.Err_52 as err:
+        sys.stderr.write(str(err.msg))
+        exit(52)
+    except err.Err_53 as err:
+        sys.stderr.write(str(err.msg))
+        exit(53)
+    except err.Err_54 as err:
+        sys.stderr.write(str(err.msg))
+        exit(54)
+    except err.Err_55 as err:
+        sys.stderr.write(str(err.msg))
+        exit(55)
+    except err.Err_56 as err:
+        sys.stderr.write(str(err.msg))
+        exit(56)
+    except err.Err_57 as err:
+        sys.stderr.write(str(err.msg))
+        exit(57)
+    except err.Err_58 as err:
+        sys.stderr.write(str(err.msg))
+        exit(58)
     except:
         raise
-    # except (err.OrderError, err.Err_32) as err:
-    #     sys.stderr.write(err.msg)
-    #     exit(32)
-    # except err.Err_31 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(31)
-    # except err.Err_52 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(52)
-    # except err.Err_53 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(53)
-    # except err.Err_54 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(54)
-    # except err.Err_55 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(55)
-    # except err.Err_56 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(56)
-    # except err.Err_57 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(57)
-    # except err.Err_58 as err:
-    #     sys.stderr.write(str(err.msg))
-    #     exit(58)
