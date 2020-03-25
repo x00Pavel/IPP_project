@@ -12,8 +12,9 @@ import re
 import xml.etree.ElementTree as ET
 import interpert.errors as err
 import interpert.frames as fr
-
-list_labels = []
+from pprint import pprint as pp
+lables = []
+call_stack = []
 
 stack = fr.Stack()
 
@@ -31,24 +32,42 @@ def get_frame_n_name(variable: str):
         raise err.Err_31(None, fnc='get_frame_v_var')
 
 
-def check_params(params: ET.Element, cnt: int, fnc: str = None):
+def check_label(name) -> int:
+    """
+    Check if labe; is defined and return corresponding index
+    """
+    # attrib, name = lab.values()
+    for label in lables:
+        if name == label['name']:
+            return label['index'] + 1
+    return None
+
+
+def check_params(params, cnt: int, fnc: str = None):
     if len(params) != cnt:
         raise err.Err_32(f"Wrong count of parameters in function {fnc}. "
-                  f"Required {len(params)}, but you have {cnt}.\n",
-                  )
+                         f"Required {len(params)}, but you have {cnt}.\n",
+                         )
 
-    if fnc == 'CALL' or fnc == 'LABEL':
-        if params[0].attrib['type'] != 'label':
+    if fnc == 'CALL' or fnc == 'LABEL' or fnc == 'JUMP':
+        if params[0]['attrib']['type'] != 'label':
             raise err.Err_53(None, 'CALL', req_type='label',
-                       src_type=params[0].attrib['type'])
+                             src_type=params[0]['attrib']['type'])
         else:
-            return params[0].text
+            return params[0]['text']
     elif fnc == 'POPS':
-        if params[0].attrib['type'] != 'var':
+        if params[0]['attrib']['type'] != 'var':
             raise err.Err_53(None, fnc='POPS', req_type='var',
-                             src_type=params[0].attrib['type'])
+                             src_type=params[0]['attrib']['type'])
     elif fnc == 'PUSHS':
         pass
+    elif fnc == 'EXIT':
+        code = params[0]
+        if code['attrib']['type'] == 'var':
+            return (code, True)
+        else:
+            return (code, False)
+
     elif fnc == 'WRITE':
         return params[0]
     elif fnc == 'STRI2INT' or \
@@ -66,9 +85,9 @@ def check_params(params: ET.Element, cnt: int, fnc: str = None):
         dst = params[0]
         src = params[1]
         ind = params[2]
-        if dst.attrib['type'] != 'var':
+        if dst['attrib']['type'] != 'var':
             raise err.Err_53(None, fnc=fnc, req_type='var',
-                             src_type=dst.attrib['type'])
+                             src_type=dst['attrib']['type'])
         return (dst, src, ind)
     elif fnc == 'TYPE' or \
             fnc == 'MOVE' or \
@@ -78,11 +97,19 @@ def check_params(params: ET.Element, cnt: int, fnc: str = None):
             fnc == 'NOT':
         dst = params[0]
         src = params[1]
-        if dst.attrib['type'] != 'var':
+        if dst['attrib']['type'] != 'var':
             raise err.Err_53(None, fnc=fnc, req_type='var',
-                             src_type=dst.attrib['type'])
+                             src_type=dst['attrib']['type'])
         return (dst, src)
-
+    elif fnc == 'JUMPIFEQ' or \
+            fnc == 'JUMPIFNEQ':
+        label = params[0]
+        first = params[1]
+        second = params[2]
+        if label['attrib']['type'] != 'label':
+            raise err.Err_53(None, fnc=fnc, req_type='label',
+                             src_type=dst['attrib']['type'])
+        return label['text'], first, second
 
 def convert_str(string: str):
     ar = re.findall(r'\\(\d{3})', string)
@@ -90,6 +117,7 @@ def convert_str(string: str):
     for a in ar:
         string = re.sub(r'\\{}'.format(a), chr(int(a)), string)
     return string
+
 
 def get_item_from_frame(var: str) -> tuple:
     frame, name = get_frame_n_name(var)
@@ -101,13 +129,14 @@ def get_item_from_frame(var: str) -> tuple:
     except (err.Err_54, err.Err_55) as error:
         raise error
 
-def get_type(var: ET.ElementTree) -> str:
-    if var.attrib['type'] == 'var':
-        args = get_item_from_frame(var.text)
+
+def get_type(var) -> str:
+    if var['attrib']['type'] == 'var':
+        args = get_item_from_frame(var['text'])
         item = args[1][0]
         return item['type']
     else:
-        return var.attrib['type']
+        return var['attrib']['type']
 
 
 def set_value_in_frame(frame: str, var_to_insert: dict, index: int):
@@ -126,11 +155,11 @@ def set_value_in_frame(frame: str, var_to_insert: dict, index: int):
         raise err.Err_32("Error in inserting new value in set_value.")
 
 
-def return_value(var: ET.ElementTree, req_type: str, fnc: str = ''):
+def return_value(var, req_type: str, fnc: str = ''):
     tmp = None
 
-    if var.attrib['type'] == 'var':
-        frame, (item, ind) = get_item_from_frame(var.text)
+    if var['attrib']['type'] == 'var':
+        frame, (item, ind) = get_item_from_frame(var['text'])
         if item['type'] is None:
             raise err.Err_56()
         if fnc == 'TYPE':
@@ -142,12 +171,12 @@ def return_value(var: ET.ElementTree, req_type: str, fnc: str = ''):
         else:
             tmp = item['value']
     elif fnc == 'TYPE':
-        return var.attrib['type']
-    elif var.attrib['type'] == req_type:
-        tmp = var.text
+        return var['attrib']['type']
+    elif var['attrib']['type'] == req_type:
+        tmp = var['text']
     else:
         raise err.Err_53(None, fnc=fnc, req_type=req_type,
-                         src_type=var.attrib['type'])
+                         src_type=var['attrib']['type'])
     return tmp
 
 
@@ -161,9 +190,9 @@ def set_n_insert_val_type(dst: str, src_type: str, src_value):
 def check_math(def_var, first_val, second_val, ref_type='int'):
     # Extracting information to correct processing of operaion
 
-    frame, (item, index) = get_item_from_frame(def_var.text)
-    first_type = first_val.attrib['type']
-    second_type = second_val.attrib['type']
+    frame, (item, index) = get_item_from_frame(def_var['text'])
+    first_type = first_val['attrib']['type']
+    second_type = second_val['attrib']['type']
     args = None
 
     def return_list(first, second):
@@ -179,42 +208,43 @@ def check_math(def_var, first_val, second_val, ref_type='int'):
             return (bool(first), second)
 
     if first_type == ref_type and second_type == ref_type:
-        args = return_list(first_val.text, second_val.text)
+        args = return_list(first_val['text'], second_val['text'])
 
     elif first_type == ref_type and second_type == 'var':
         try:
             # Extract value from given variable
             var_frame, (var_item, var_index) = get_item_from_frame(
-                second_val.text)
+                second_val['text'])
             # Extract variable to write down
             if var_item['type'] is None:
                 raise err.Err_56
             if(var_item['type'] != ref_type):
                 raise err.Err_53(None, fnc='check_math', req_type=ref_type,
                                  src_type=var_item['type'])
-            args = return_list(first_val.text, var_item['value'])
-        except :
-            raise     
+            args = return_list(first_val['text'], var_item['value'])
+        except:
+            raise
     elif first_type == 'var' and second_type == ref_type:
         try:
             # Extract variable to write down
-            var_frame, (var_item, var_index) = get_item_from_frame(first_val.text)
+            var_frame, (var_item, var_index) = get_item_from_frame(
+                first_val['text'])
             if var_item['type'] is None:
                 raise err.Err_56
             if(var_item['type'] != ref_type):
                 raise err.Err_53(None, fnc='check_math', req_type=ref_type,
                                  src_type=var_item['type'])
-            args = return_list(var_item['value'], second_val.text)
+            args = return_list(var_item['value'], second_val['text'])
         except:
             raise
     elif first_type == 'var' and second_type == 'var':
         try:
             # Extract value from given variable
-            frame_1, item_of_var_1, index_of_var_1 = get_item_from_frame(
-                first_val.text)
+            frame_1, (item_of_var_1, index_of_var_1) = get_item_from_frame(
+                first_val['text'])
 
-            frame_2, item_of_var_2, index_of_var_2 = get_item_from_frame(
-                second_val.text)
+            frame_2, (item_of_var_2, index_of_var_2) = get_item_from_frame(
+                second_val['text'])
             # Extract variable to write down
             if item_of_var_1['type'] is None or item_of_var_2['type'] is None:
                 raise err.Err_56

@@ -13,7 +13,8 @@ import sys
 import getopt
 import fileinput
 import xml.etree.ElementTree as ET
-import pprint as pp
+from pprint import pprint as pp
+# import pprint as pp
 import interpert.opcodes as ops
 import interpert.other_functions as fnc
 import interpert.errors as err
@@ -85,18 +86,16 @@ def main(*args, **kwargs):
 
         except:
             raise err.Err_99("Error while reading code from STDIN."
-                          "Maybe error in creating temporary file\n")
+                             "Maybe error in creating temporary file\n")
 
 
 fnc_dict = {'ADD': ops.add_fnc,
             'SUB': ops.sub_fnc,
             'MUL': ops.mul_fnc,
             'IDIV': ops.idiv_fnc,
-            'LABEL': ops.label_fnc,
             'DEFVAR': ops.def_var_fnc,
             'WRITE': ops.write_fnc,
             'MOVE': ops.move_fnc,
-            'LABEL': ops.label_fnc,
             "CREATEFRAME": ops.create_frame_fnc,
             "PUSHFRAME": ops.push_frame_fnc,
             "POPFRAME": ops.pop_frame_fnc,
@@ -115,7 +114,12 @@ fnc_dict = {'ADD': ops.add_fnc,
             'NOT': ops.not_fnc,
             'EQ': ops.equal_fnc,
             'LT': ops.less_fnc,
-            'GT': ops.greater_fnc
+            'GT': ops.greater_fnc,
+            'EXIT': ops.exit_fnc,
+            'GETCHAR': ops.get_char_fnc,
+            'JUMP': ops.jump_fnc,
+            'JUMPIFEQ': ops.jump_if_eq_fnc,
+            'JUMPIFNEQ': ops.jump_if_neq_fnc,
             }
 
 
@@ -127,27 +131,56 @@ def process_xml(xml_file):
     else:
         root = source_file.getroot()
 
-    for child in root:
-        if child.tag != 'program':
-            # try:
-            if order > int(child.attrib['order']):
-                raise err.OrderError(order, int(child.attrib['order']))
-            order = int(child.attrib['order'])
-            opcode = child.attrib['opcode']
-            function = fnc_dict[opcode.upper()]
-            if opcode.upper() == 'READ':
-                function(child, input_file)
-                if input_file is not None:
-                    input_file.pop(0)
-            elif opcode.upper() == 'JUMP':
-                for item in root.find('LABEL'):
-                    ET.dump(item)
-            else:
-                function(child)
+    instructions = []
+    prev_order = -1
+    for node in root:
+        order = int(node.attrib['order'])
+        if int(order) <= int(prev_order):
+            raise err.OrderError(prev_order, order)
 
-            # except KeyError:
-            #     raise err.Err_32("No reference to function for"
-            #                      f" operation code {opcode}.\n")
+        prev_order = order
+
+        chidlrens = []
+        for item in node:
+            chidlrens.append({'attrib': item.attrib, 'text': item.text})
+
+        instructions.append((node.attrib, chidlrens))
+        if instructions[-1][0]['opcode'].upper() == 'LABEL':
+            if len(instructions[-1][1]) != 1:
+                raise err.Err_32
+            elif instructions[-1][1][0]['attrib']['type'] != 'label':
+                raise err.Err_53
+            elif node[0].text in [item['name'] for item in fnc.lables]:
+                raise err.Err_52(var=node[0].text)
+            else:
+                fnc.lables.append(
+                    {'name': node[0].text, 'index': len(instructions) - 1})
+
+    i = 0
+
+    while i < len(instructions):
+        attrib, child = instructions[i]
+
+        opcode = attrib['opcode'].upper()
+        if opcode == 'LABEL':
+            i = i + 1
+            continue
+
+        function = fnc_dict[opcode]
+
+        if opcode == 'READ':
+            function(child, input_file)
+            if input_file is not None:
+                input_file.pop(0)
+        elif opcode == 'RETURN' or \
+                opcode == 'JUMP' or \
+                opcode == 'CALL' or \
+                opcode == 'JUMPIFEQ' or \
+                opcode == 'JUMPIFNEQ':
+            i = function(child, i)
+        else:
+            function(child)
+            i += 1
 
 
 if __name__ == "__main__":
@@ -155,6 +188,7 @@ if __name__ == "__main__":
         main()
         process_xml(source_file)
     except (err.OrderError, err.Err_32) as err:
+        raise
         sys.stderr.write(err.msg)
         exit(32)
     except err.Err_31 as err:
@@ -181,5 +215,8 @@ if __name__ == "__main__":
     except err.Err_58 as err:
         sys.stderr.write(str(err.msg))
         exit(58)
+    except err.Err_exit as err:
+        sys.stderr.write(f"Exit with code {err.code}.\n")
+        exit(err.code)
     except:
         raise

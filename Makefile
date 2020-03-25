@@ -50,8 +50,8 @@ both:
 clean:
 	php7.3 clean.php ./
 
-view: test_only
-	xdg-open output.html
+view: 
+	xdg-open out.html
 
 errors:
 # TODO markwodn this info
