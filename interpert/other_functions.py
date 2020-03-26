@@ -36,7 +36,6 @@ def check_label(name) -> int:
     """
     Check if labe; is defined and return corresponding index
     """
-    # attrib, name = lab.values()
     for label in lables:
         if name == label['name']:
             return label['index'] + 1

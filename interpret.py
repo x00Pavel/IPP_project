@@ -120,6 +120,7 @@ fnc_dict = {'ADD': ops.add_fnc,
             'JUMP': ops.jump_fnc,
             'JUMPIFEQ': ops.jump_if_eq_fnc,
             'JUMPIFNEQ': ops.jump_if_neq_fnc,
+            'SETCHAR': ops.set_char_fnc,
             }
 
 
@@ -188,10 +189,10 @@ if __name__ == "__main__":
         main()
         process_xml(source_file)
     except (err.OrderError, err.Err_32) as err:
-        raise
         sys.stderr.write(err.msg)
         exit(32)
     except err.Err_31 as err:
+        raise
         sys.stderr.write(str(err.msg))
         exit(31)
     except err.Err_52 as err:

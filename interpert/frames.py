@@ -53,6 +53,9 @@ class LocalFrame():
     def get_var(self, name: str):
         if LocalFrame.local_frame_stack is None:
             raise err.Err_55(frame='LF')
+        if len(LocalFrame.local_frame_stack) == 0:
+            raise err.Err_55(frame='LF')
+
         if name not in [item['name'] for item in LocalFrame.local_frame_stack[-1]]:
             raise err.Err_54(None, fnc='get_var',var=name, frame='LF')
         else:
@@ -82,6 +85,7 @@ class TemporaryFrame():
 
     def __init__(self):
         TemporaryFrame.temporary_frame = []
+        # return 
 
     def get_var(self, name: str):
         if TemporaryFrame.temporary_frame is None:
