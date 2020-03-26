@@ -123,8 +123,13 @@ table, th, td {
   border-collapse: collapse;
 }
 th {
-  text-align: center;
+    text-align: center;
 }
+body, h1 {
+  background-color: grey;
+  color: black;
+}
+
 </style>
 </head>
 <body>');
@@ -137,7 +142,7 @@ fwrite(STDOUT, "</ol>\n");
 
 fwrite(STDOUT, "<hr size=5>\n");
 
-$ok = "<span style=\"color:green\">&#10004</span>";
+$ok = "<span style=\"color:chartreuse\">&#10004</span>";
 $not_ok = "<span style=\"color:red\">&#10008</span>";
 $passed = 0;
 $faled = 0;
@@ -186,8 +191,8 @@ if ($parse_only & !$int_only) {
                         <td>" . $files['src'] . "<td/>
                         <td>" . $out_file . "<td/>
                         <td>" . $refer_code . "<td/>
-                        <td>$ok<td/>
-                        <td>$ok<td/>
+                        <td align=\"center\">$ok<td/>
+                        <td align=\"center\" >$ok<td/>
                     <tr/>";
                     $passed++;
                 } else {
@@ -195,8 +200,8 @@ if ($parse_only & !$int_only) {
                         <td>" . $files['src'] . "<td/>
                         <td>" . $out_file . "<td/>
                         <td>" . $refer_code . "<td/>
-                        <td>$ok<td/>
-                        <td>$not_ok<td/>
+                        <td align=\"center\">$ok<td/>
+                        <td align=\"center\" >$not_ok<td/>
                     <tr/>";
                     $faled++;
                 }
@@ -209,8 +214,8 @@ if ($parse_only & !$int_only) {
                 <td>" . $files['src'] . "<td/>
                 <td>" . $out_file . "<td/>
                 <td>" . $refer_code . "<td/>
-                <td>$not_ok<td/>
-                <td>$not_ok<td/>
+                <td align=\"center\" >$not_ok<td/>
+                <td align=\"center\" >$not_ok<td/>
             <tr/>";
             $faled++;
         }
@@ -243,8 +248,8 @@ if ($parse_only & !$int_only) {
                             <td>" . $files['src'] . "<td/>
                             <td>" . $out_file . "<td/>
                             <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$ok<td/>
+                            <td align=\"center\" align=\"center\">$ok<td/>
+                            <td align=\"center\">$ok<td/>
                         <tr/>";
                         $passed++;
                     } else {
@@ -252,8 +257,8 @@ if ($parse_only & !$int_only) {
                             <td>" . $files['src'] . "<td/>
                             <td>" . $out_file . "<td/>
                             <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$not_ok<td/>
+                            <td align=\"center\">$ok<td/>
+                            <td align=\"center\" >$not_ok<td/>
                         <tr/>";
                         $faled++;
                     }
@@ -263,8 +268,8 @@ if ($parse_only & !$int_only) {
                             <td>" . $files['src'] . "<td/>
                             <td> No reference output <td/>
                             <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$ok<td/>
+                            <td align=\"center\">$ok<td/>
+                            <td align=\"center\">$ok<td/>
                         <tr/>";
                 $passed++;
             }
@@ -273,8 +278,8 @@ if ($parse_only & !$int_only) {
             <td>" . $files['src'] . "<td/>
             <td>" . $out_file . "<td/>
             <td>" . $refer_code . "<td/>
-            <td>$not_ok<td/>
-            <td>$not_ok<td/>
+            <td align=\"center\" >$not_ok<td/>
+            <td align=\"center\" >$not_ok<td/>
             <tr/>";
             $faled++;
         }
@@ -311,17 +316,17 @@ else if (!$int_only & !$parse_only){
                             <td>" . $files['src'] . "<td/>
                             <td>" . $out_file . "<td/>
                             <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$ok<td/>
+                            <td align=\"center\">$ok<td/>
+                            <td align=\"center\">$ok<td/>
                         <tr/>";
                         $passed++;
                     } else {
                         $out_str_fault = $out_str_fault . "<tr>
-                            <td>" . $files['src'] . "<td/>
+                        <td>" . $files['src'] . "<td/>
                             <td>" . $out_file . "<td/>
                             <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$not_ok<td/>
+                            <td align=\"center\">$ok<td/>
+                            <td align=\"center\" >$not_ok<td/>
                         <tr/>";
                         $faled++;
                     }
@@ -331,8 +336,8 @@ else if (!$int_only & !$parse_only){
                             <td>" . $files['src'] . "<td/>
                             <td> No reference output <td/>
                             <td>" . $refer_code . "<td/>
-                            <td>$ok<td/>
-                            <td>$ok<td/>
+                            <td align=\"center\">$ok<td/>
+                            <td align=\"center\">$ok<td/>
                         <tr/>";
                 $passed++;
             }
@@ -341,8 +346,8 @@ else if (!$int_only & !$parse_only){
             <td>" . $files['src'] . "<td/>
             <td>--<td/>
             <td>" . $refer_code . "<td/>
-            <td>$not_ok<td/>
-            <td>$not_ok<td/>
+            <td align=\"center\" >$not_ok<td/>
+            <td align=\"center\" >$not_ok<td/>
             <tr/>";
             $faled++;
         }
