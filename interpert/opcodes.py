@@ -91,7 +91,6 @@ def jump_if_neq_fnc(params, i: int,  *args):
     if index is None:
         raise err.Err_52(var=label)
 
-
     result = None
     if first_type is None or second_type is None:
         raise err.Err_56
@@ -178,7 +177,7 @@ def push_frame_fnc(*args):
 
 
 def pop_frame_fnc(*args):
-    lf = fnc.frames['LF'] 
+    lf = fnc.frames['LF']
     if lf is None:
         raise err.Err_55(frame='LF')
     frame = fnc.frames['LF'].get_frame()
@@ -188,9 +187,14 @@ def pop_frame_fnc(*args):
 
 
 def pushs_fnc(params, *args):
-    fnc.check_params(params, 1, 'PUSHS')
-    src_type = params[0]['attrib']['type']
-    src_val = params[0]['text']
+    item = fnc.check_params(params, 1, 'PUSHS')
+    if item['attrib']['type'] == 'var':
+        frame, (item, index) = fnc.get_item_from_frame(item['text'])
+        if item['type'] is None or \
+                item['text'] is None:
+            raise err.Err_56
+    src_type = item['attrib']['type']
+    src_val = item['text']
     fnc.stack.push({'value': src_val, 'type': src_type})
 
 
@@ -198,6 +202,10 @@ def pops_fnc(params, *args):
     fnc.check_params(params, 1, 'POPS')
     frame, (item, index) = fnc.get_item_from_frame(params[0]['text'])
     val_to_insert = fnc.stack.pop()
+    if val_to_insert['type'] is None or \
+            val_to_insert['value'] is None:
+        raise err.Err_56
+
     item['type'] = val_to_insert['type']
     item['value'] = val_to_insert['value']
     fnc.set_value_in_frame(frame, item, index)
@@ -366,7 +374,8 @@ def not_fnc(params, *args):
     try:
         first = fnc.return_value(first, 'bool', 'NOT')
         tmp = {'true': True, 'false': False}
-        fnc.set_n_insert_val_type(destination['text'], 'bool', str(not tmp[first]).lower())
+        fnc.set_n_insert_val_type(
+            destination['text'], 'bool', str(not tmp[first]).lower())
     except:
         raise
 
@@ -416,14 +425,17 @@ def str_2_int_fnc(params, *args):
         string = string['text']
     else:
         raise err.Err_53(None, fnc='STRI2INT', req_type='string/var',
-                         src_type=src_item['type'])
+                         src_type=string['attrib']['type'])
 
     if index_of_char['attrib']['type'] == 'var':
         ind_frame, (ind_item, ind_index) = fnc.get_item_from_frame(
             index_of_char['text'])
+        if ind_item['type'] is None or \
+                ind_item['type'] is None:
+            raise err.Err_56
         if ind_item['type'] != 'int':
             raise err.Err_53(None, fnc='STRI2INT', req_type='int',
-                             src_type=src_item['type'])
+                             src_type=ind_item['type'])
 
         try:
             index_of_char = int(ind_item['value'])
@@ -436,6 +448,10 @@ def str_2_int_fnc(params, *args):
         except:
             raise err.Err_58(
                 f"Value '{index_of_char['text']}' can't be converted to 'int'.\n")
+    else:
+        raise err.Err_53(None, fnc='STRI2INT', req_type='int',
+                         src_type=index_of_char['attrib']['type'])
+
     if index_of_char < 0:
         raise err.Err_58(fnc='STRI2INT')
     try:
@@ -447,29 +463,42 @@ def str_2_int_fnc(params, *args):
         raise err.Err_58(fnc='STRI2INT')
 
 
-def read_fnc(params, input_file, *args):
-
+def read_fnc(params, input_file: list, *args):
     destination, type_ = fnc.check_params(params, 2, 'READ')
     if type_['attrib']['type'] != 'type':
         raise err.Err_53(None, fnc='READ', req_type='type',
                          src_type=type_['attrib']['type'])
+
     try:
+        frame, (item, index) = fnc.get_item_from_frame(destination['text'])
         var = ''
         if input_file is None:
             var = input()
+            if var == '\n' or var == '':
+                var = 'nil' 
         else:
-            var = input_file[0]
-
-        frame, (item, index) = fnc.get_item_from_frame(destination['text'])
-        if type_['text'] == 'int':
-            if not isinstance(var, int):
+            if len(input_file) == 0:
                 var = 'nil'
+            else:
+                var = input_file[0]
+            
+        if type_['text'] == 'int':
+            try:
+                var = int(var)
+            except ValueError:
+                var = 'nil'
+                # raise err.Err_58(
+                #     f"Value '{var}' can't be converted to 'int'.\n")
         elif type_['text'] == 'string':
-            if not isinstance(var, str):
+            try:
+                var = str(var)
+            except ValueError:
                 var = 'nil'
         elif type_['text'] == 'bool':
             if var.lower() == 'true':
                 var = 'true'
+            elif var == 'nil':
+                pass
             else:
                 var = 'false'
         else:
@@ -486,9 +515,12 @@ def strlen_fnc(params, *args):
     destination, source = fnc.check_params(params, 2, 'STRLEN')
     try:
         value = fnc.return_value(source, 'string', 'STRLEN')
-        fnc.set_n_insert_val_type(destination['text'], 'int', len(value))
+        length = 0
+        if value is not None:
+            length = len(value)
+        fnc.set_n_insert_val_type(destination['text'], 'int', length)
     except:
-        raise err.Err_32(fnc='STRLEN')
+        raise
 
 
 def get_char_fnc(params, *args):
@@ -515,19 +547,25 @@ def set_char_fnc(params, *args):
         raise err.Err_58(fnc='SETCHAR')
     if not char:
         raise err.Err_58(fnc='SETCHAR')
-    
-    string[index] = char
-    
-    fnc.set_n_insert_val_type(source, 'string', "".join(string))
+
+    char = list(fnc.convert_str(str(char)))
+
+    string[index] = char[0]
+
+    fnc.set_n_insert_val_type(source['text'], 'string', "".join(string))
 
 
 def type_fnc(params, *args):
     destination, source = fnc.check_params(params, 2, 'TYPE')
     try:
         src_type = fnc.return_value(source, '', 'TYPE')
+        if src_type is None:
+            src_type = ''
+        elif src_type == 'type':
+            src_type = 'string'
         fnc.set_n_insert_val_type(destination['text'], 'type', src_type)
     except:
-        raise err.Err_32(fnc='TYPE')
+        raise
 
 
 def exit_fnc(params, *args):
@@ -630,7 +668,7 @@ def write_fnc(params, *args):
     if arg_type == 'var':
         frame, (item, index) = fnc.get_item_from_frame(arg_val)
         if item['type'] is None or item['value'] is None:
-            raise err.Err_56 
+            raise err.Err_56
         if item['type'] == 'nil':
             to_print = ''
         elif item['type'] == 'string':
@@ -657,7 +695,8 @@ def move_fnc(params, *args):
 
     frame, (item, index) = fnc.get_item_from_frame(dest_var['text'])
     if value['attrib']['type'] == 'var':
-        frame_src, (item_src, index_src) = fnc.get_item_from_frame(value['text'])
+        frame_src, (item_src, index_src) = fnc.get_item_from_frame(
+            value['text'])
         if item_src['value'] is None or item_src['type']is None:
             raise err.Err_56
         item['value'] = item_src['value']
@@ -692,7 +731,7 @@ def sub_fnc(params, *args):
         item['type'] = 'int'
         fnc.set_value_in_frame(frame, item, index)
     except:
-        raise err.Err_32("Something wrong in TRY block of ADD function.\n")
+        raise
 
 
 def mul_fnc(params, *args):

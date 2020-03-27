@@ -291,10 +291,9 @@ else if (!$int_only & !$parse_only){
         $cmd = "php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <" . $files['src'];
         $cmd = $cmd. " | python3.7 $int_script";
 
-        if (array_key_exists("in", $file)) {
+        if (array_key_exists("in", $files)) {
             $cmd = $cmd . " --input=" . $files['in'];
         }
-        
         $cmd_out = exec($cmd."> tmp.txt", $o, $return_code );
 
         if (array_key_exists('rc', $files)) {

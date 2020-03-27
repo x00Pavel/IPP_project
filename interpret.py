@@ -72,10 +72,9 @@ def main(*args, **kwargs):
                 input_file = f.read()
                 input_file = input_file.split('\n')
         except IOError:
-            raise err.Err_99(f"File {params['--input']} does not exist or can't be "
-                             "open to read\n" if params['--input'] != ''
+            raise err.Err_99(f"File {params['--input']} does not exist or can't be "\
+                             "open to read\n" if params['--input'] != '' 
                              else "You did not specified file for some parameter\n")
-
     if source_file is None:
         try:
             with open("tmp.xml", "w") as f:
@@ -125,6 +124,14 @@ fnc_dict = {'ADD': ops.add_fnc,
 
 
 def process_xml(xml_file):
+    """
+    Function for processing XML representation of IPPcode20 language.
+
+    Parameters
+    ----------
+    xmn_file: ElementTree instance
+        file to be interpreted
+    """
     order = 1
     root = None
     if ET.iselement(source_file):
@@ -171,8 +178,9 @@ def process_xml(xml_file):
 
         if opcode == 'READ':
             function(child, input_file)
-            if input_file is not None:
+            if len(input_file) != 0:
                 input_file.pop(0)
+            i += 1
         elif opcode == 'RETURN' or \
                 opcode == 'JUMP' or \
                 opcode == 'CALL' or \
@@ -185,39 +193,40 @@ def process_xml(xml_file):
 
 
 if __name__ == "__main__":
+    
     try:
         main()
         process_xml(source_file)
     except (err.OrderError, err.Err_32) as err:
-        sys.stderr.write(err.msg)
+        print("\033[91m [Error 32] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(32)
     except err.Err_31 as err:
         raise
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 32] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(31)
     except err.Err_52 as err:
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 52] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(52)
     except err.Err_53 as err:
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 53] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(53)
     except err.Err_54 as err:
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 54] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(54)
     except err.Err_55 as err:
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 55] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(55)
     except err.Err_56 as err:
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 56] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(56)
     except err.Err_57 as err:
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 57] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(57)
     except err.Err_58 as err:
-        sys.stderr.write(str(err.msg))
+        print("\033[91m [Error 58] \033[0m- " + str(err.msg), file=sys.stderr)
         exit(58)
     except err.Err_exit as err:
-        sys.stderr.write(f"Exit with code {err.code}.\n")
+        print(f"\033[92m Exit with code {err.code}.\n", file=sys.stderr)
         exit(err.code)
     except:
         raise

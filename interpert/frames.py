@@ -139,7 +139,7 @@ class Stack():
 
     def pop(self):
         if self.is_empty():
-            return None
+            raise err.Err_56
         else:
             return self.stack.pop()
 

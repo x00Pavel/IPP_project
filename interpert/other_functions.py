@@ -59,7 +59,7 @@ def check_params(params, cnt: int, fnc: str = None):
             raise err.Err_53(None, fnc='POPS', req_type='var',
                              src_type=params[0]['attrib']['type'])
     elif fnc == 'PUSHS':
-        pass
+        return params[0]
     elif fnc == 'EXIT':
         code = params[0]
         if code['attrib']['type'] == 'var':
@@ -159,10 +159,10 @@ def return_value(var, req_type: str, fnc: str = ''):
 
     if var['attrib']['type'] == 'var':
         frame, (item, ind) = get_item_from_frame(var['text'])
-        if item['type'] is None:
-            raise err.Err_56()
         if fnc == 'TYPE':
             return item['type']
+        if item['type'] is None:
+            raise err.Err_56()
         if item['type'] != req_type:
             raise err.Err_53(None, fnc=fnc, req_type=req_type,
                              src_type=item['type'])
