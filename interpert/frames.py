@@ -1,9 +1,27 @@
 #!/usr/bin/env python3.8
 # -*- coding: utf-8 -*-
+"""
+ __author__  =  "Pavel Yadlouski (xyadlo00)"
+ __project__ =  "Interpret for IPPcode20 language"
+ __brief__   =  "Module with implementation of frames classes and stack class"
+ __file__    =  "interpret/frames.py"
+ __date__    =  "03.2020"
+"""
+
 import interpert.errors as err
 
 
 class GlobalFrame():
+    """
+    Class for handling global frame
+
+    Raises
+    ------
+    Err_55
+        If global frame is not initialize
+    Err_54
+        
+    """
     global_frame = None
 
     def __init__(self):
@@ -57,7 +75,7 @@ class LocalFrame():
             raise err.Err_55(frame='LF')
 
         if name not in [item['name'] for item in LocalFrame.local_frame_stack[-1]]:
-            raise err.Err_54(None, fnc='get_var',var=name, frame='LF')
+            raise err.Err_54(None, fnc='get_var', var=name, frame='LF')
         else:
             for item in LocalFrame.local_frame_stack[-1]:
                 if item['name'] == name:
@@ -67,7 +85,7 @@ class LocalFrame():
         if LocalFrame.local_frame_stack is None:
             raise err.Err_55(frame='LF')
         if index is None:
-           LocalFrame.local_frame_stack[-1].append(var_to_insert)
+            LocalFrame.local_frame_stack[-1].append(var_to_insert)
         elif LocalFrame.local_frame_stack[-1][index]['name'] == var_to_insert['name']:
             LocalFrame.local_frame_stack[-1][index] = var_to_insert
         else:
@@ -85,7 +103,7 @@ class TemporaryFrame():
 
     def __init__(self):
         TemporaryFrame.temporary_frame = []
-        # return 
+        # return
 
     def get_var(self, name: str):
         if TemporaryFrame.temporary_frame is None:
@@ -115,7 +133,6 @@ class TemporaryFrame():
 
     def set_frame(self, frame: []):
         TemporaryFrame.temporary_frame = frame
-
 
     def get_frame(self):
         if TemporaryFrame.temporary_frame is None:

@@ -14,7 +14,6 @@ import getopt
 import fileinput
 import xml.etree.ElementTree as ET
 from pprint import pprint as pp
-# import pprint as pp
 import interpert.opcodes as ops
 import interpert.other_functions as fnc
 import interpert.errors as err
@@ -54,6 +53,8 @@ def main(*args, **kwargs):
                 " Interpretace instrukcíprobíhá dle atributu order vzestupně"
                 " (sekvence nemusí být souvislá na rozdíl od sekce 3.1)\n""")
             sys.exit(0)
+
+    # If there is source file, try to process it
     if '--source' in params.keys():
         try:
             source_file = ET.parse(params['--source'])
@@ -65,6 +66,8 @@ def main(*args, **kwargs):
         except ET.ParseError:
             raise err.Err_32(
                 "There is something wrong with tags while parsing XML.\n")
+
+    # If there is input file, try to process it
     if '--input' in params.keys():
         input_file = params['--input']
         try:
@@ -75,6 +78,10 @@ def main(*args, **kwargs):
             raise err.Err_99(f"File {params['--input']} does not exist or can't be "\
                              "open to read\n" if params['--input'] != '' 
                              else "You did not specified file for some parameter\n")
+                             
+    # If there is no source file specified,
+    # then temporary XML file would be created and,  
+    # after converting to ElementTree instance, deleted
     if source_file is None:
         try:
             with open("tmp.xml", "w") as f:
@@ -87,7 +94,7 @@ def main(*args, **kwargs):
             raise err.Err_99("Error while reading code from STDIN."
                              "Maybe error in creating temporary file\n")
 
-
+# Dictionary containing references to coresponding function for operaion codes
 fnc_dict = {'ADD': ops.add_fnc,
             'SUB': ops.sub_fnc,
             'MUL': ops.mul_fnc,

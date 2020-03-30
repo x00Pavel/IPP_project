@@ -3,10 +3,11 @@
 """
  __author__  =  "Pavel Yadlouski (xyadlo00)"
  __project__ =  "Interpret for IPPcode20 language"
- __brief__   =  "Functions for all valid operation codes"
+ __brief__   =  "Module with all valid operation codes"
  __file__    =  "interpret/opcodes.py"
  __date__    =  "03.2020"
 """
+
 import xml.etree.ElementTree as ET
 import interpert.other_functions as fnc
 import interpert.errors as err
@@ -15,6 +16,117 @@ import interpert.frames as fr
 from pprint import pprint as pp
 import sys
 import re
+
+
+def clear_stack_fnc(parames: dict, *args):
+    if not fnc.stack.is_empty():
+        while not fnc.stack.is_empty():
+            fnc.stack.pop()
+
+
+def add_stack_fnc(params: dict, *args):
+    if not fnc.stack.is_empty():
+        first = fnc.stack.pop()
+        second = fnc.stack.pop()
+
+        if first['type'] is None or \
+                second['type'] is None:
+            raise err.Err_52(var='On stack')
+
+        if first['type'] == 'int' and second['type'] == 'int':
+            item = {'type': 'int', 'value': str(
+                int(first['value']) + int(second['value']))}
+            fnc.stack.push(item)
+        else:
+            raise err.Err_53(fnc='ADDS', req_type='int',
+                             src_type=first['type'] if first['type'] != 'int'
+                                                    else second['type'])
+
+
+def mul_stack_fnc(params: dict, *args):
+    if not fnc.stack.is_empty():
+        first = fnc.stack.pop()
+        second = fnc.stack.pop()
+
+        if first['type'] is None or \
+                second['type'] is None:
+            raise err.Err_52(var='On stack')
+
+        if first['type'] == 'int' and second['type'] == 'int':
+            item = {'type': 'int', 'value': str(
+                int(first['value']) * int(second['value']))}
+            fnc.stack.push(item)
+        else:
+            raise err.Err_53(fnc='ADDS', req_type='int',
+                             src_type=first['type'] if first['type'] != 'int'
+                                                    else second['type'])
+
+
+def idiv_stack_fnc(params: dict, *args):
+    if not fnc.stack.is_empty():
+        first = fnc.stack.pop()
+        second = fnc.stack.pop()
+
+        if first['type'] is None or \
+                second['type'] is None:
+            raise err.Err_52(var='On stack')
+
+        if first['type'] == 'int' and second['type'] == 'int':
+            if int(first['value']) == 0:
+                raise err.Err_57(fnc='IDIVS')
+
+            item = {'type': 'int', 'value': str(
+                int(second['value']) // int(first['value']))}
+            fnc.stack.push(item)
+        else:
+            raise err.Err_53(fnc='ADDS', req_type='int',
+                             src_type=first['type'] if first['type'] != 'int'
+                                                    else second['type'])
+
+
+def greater_stack_fnc(params: dict, *args):
+    if not fnc.stack.is_empty():
+        first = fnc.stack.pop()
+        second = fnc.stack.pop()
+
+        if first['type'] is None or \
+                second['type'] is None:
+            raise err.Err_52(var='On stack')
+
+        result = 'false'
+        if first['type'] == 'int' and second['type'] == 'int':
+            if first['value'] is None:
+                raise err.Err_52(var='On stack')
+            if second['value'] is None:
+                raise err.Err_52(var='On stack')
+            if int(first['value']) > int(second['value'], *args):
+                result = 'true'
+        elif first['type'] == 'string' and second['type'] == 'string':
+            if first['value'] is None:
+                first['value'] = ''
+            if second['value'] is None:
+                second['value'] = ''
+            first['value'] = fnc.convert_str(first['value'])
+            second['value'] = fnc.convert_str(second['value'])
+            if first['value'] > second['value']:
+                result = 'true'
+        elif first['type'] == 'bool':
+            if first['value'] == 'true' and second['value'] == 'false':
+                result = 'true'
+            elif first['value'] == 'false' and second['value'] == 'true':
+                result = 'false'
+            elif first['value'] != 'true' and second['value'] != 'true' or \
+                    first['value'] == 'true' and second['value'] == 'true':
+                result = 'false'
+        else:
+            raise err.Err_53(fnc='ADDS', req_type='int',
+                             src_type=first['type'] if first['type'] != 'int'
+                                                    else second['type'])
+
+
+        item = {'type': 'int', 'value': result}
+        fnc.stack.push(item)
+
 
 
 def jump_fnc(params: dict, *args):
@@ -475,13 +587,13 @@ def read_fnc(params, input_file: list, *args):
         if input_file is None:
             var = input()
             if var == '\n' or var == '':
-                var = 'nil' 
+                var = 'nil'
         else:
             if len(input_file) == 0:
                 var = 'nil'
             else:
                 var = input_file[0]
-            
+
         if type_['text'] == 'int':
             try:
                 var = int(var)

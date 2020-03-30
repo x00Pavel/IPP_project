@@ -2,6 +2,15 @@
 # -*- coding: utf-8 -*-
 
 
+"""
+__author__ = "Pavel Yadlouski (xyadlo00)"
+__project__ = "Interpret for IPPcode20 language"
+__brief__ = "Module contating all error classes that coresponds 
+             to errors which may arise in interpert "
+__file__ = "interpret/errors.py"
+__date__ = "03.2020"
+"""
+
 class OrderError(Exception):
     def __init__(self, *args):
         self.msg = f"Wrong order. Must be greater then {args[0]}, but you have {args[1]}.\n"

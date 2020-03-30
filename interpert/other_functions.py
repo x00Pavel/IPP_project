@@ -3,10 +3,11 @@
 """
  __author__  =  "Pavel Yadlouski (xyadlo00)"
  __project__ =  "Interpret for IPPcode20 language" 
- __brief__   =  "Auxiliary functions for processing code" 
+ __brief__   =  "Module with auxiliary functions for processing code" 
  __file__    =  "interpret/other_functions.py"
  __date__    =  "03.2020"
 """
+
 import sys
 import re
 import xml.etree.ElementTree as ET
