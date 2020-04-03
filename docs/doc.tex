@@ -15,37 +15,73 @@ Login: xyadlo00\\}
 
 \section{Interpret}
 \subsection{Script composition}
+
 Interpret comprises from managing script \texttt{interpret.py} and package that
-provides all main functionality of interpret. In this package there are 4 other
-modules:
-\begin{enumerate}
-    \item \texttt{opcode.py}
-    \item \texttt{frames.py}
-    \item \texttt{errors.py}
-    \item \texttt{other\_functions.py}
-\end{enumerate}
+provides backend functionality of interpret. In this package there are 4 other
+modules: \texttt{opcode.py}, \texttt{frames.py}, \texttt{errors.py}, 
+\texttt{other\_functions.py}. 
 
 \subsection{Managing script}
+
 Managing script contains two functions (\texttt{main} and \texttt{process\_xml}),
 which are called in \textit{if} statement in following order: \texttt{main} 
 $\rightarrow$ \texttt{proces\_xml}. In both functions exceptions can be raised 
-(return codes and resolved through exceptions), 
-so calls of this functions are in \textit{try} block followed by a series of 
-\textit{except} blocks in which all possible errors are processed.
+(return codes and resolved through exceptions), so calls of this functions are 
+in \textit{try} block followed by a series of \textit{except} blocks in which 
+all possible errors are processed.
 
 \texttt{main} function engaged in processing of input parameters. It checks if 
 \texttt{-{}-source} and/or \texttt{-{}-input} are set and, if set, then if the
 their values are correct. In case the parameter \texttt{-{}-help} is present,
 then check if any other parameter is not used and writes description of script.
-This function can raise two exceptions.
 
 \subsection{Modules in package}
 
-\subsubsection{Operation codes}
+Interpret package contains 4 modules (\texttt{opcodes.py, other\_functions.py, 
+frames.py, errors.py}) for helding different parts in interpret.  
 
-\subsubsection{secondary functions}
+\subsubsection{Operation codes (\texttt{opcodes.py})}
+
+In this module all available operation codes are implemented. This functions
+use secondary function to simplify implementation. Also any error that may occur 
+in this functions are raised directly from secondary functions called in current 
+function of operation code.  
+
+\subsubsection{Secondary functions (\texttt{other\_functions.py})}
+
+This module is made to simplify implementation of operation codes, to separate 
+routine and avoid repetitive work such as getting name of variable and frame, 
+then extracting this variable from given frame with corresponding checks. For 
+example there is function \texttt{check\_math}. This function validate arguments 
+for mathematical instructions. Mathematical function have common way of checking 
+arguments, such as checking types of input arguments. So, all necessary 
+functionality for those operation code is present in this function. Only 
+function for handling \texttt{IDIV} function has a little extension for avoiding 
+zero division error. Also function function \texttt{CONCAT} has generally 
+similar validate. So \texttt{check\_math} also used in this function, but checks 
+for string type.
+
+This implementation helped my keep implementation of operation codes simple enough 
+and focus on logic of operation codes by it self. Also this module contains 
+declarations of auxiliary  date structures. There are declarations of data stack, 
+call stack, list of labels and dictionary of frames. Dictionary of frames 
+contain name of frame (GF/LF/TF) as keys and corresponding  objects to each frame. 
+This objects are implemented in module \texttt{frames.py}
+
+\subsubsection{Frames (\texttt{frames.py})}
+
+Frames are implemented as objects with some polymorphic methods. This methods are: 
+\texttt{get\_var}/\texttt{set\_var} for getting/setting variable from/to 
+corresponding frame, \texttt{get\_frame} to getting whole frame with corresponding 
+variables (in case of local frame this method returns frame from top of stack of 
+local frames). 
+
+\subsubsection{Error handling (\texttt{errors.py})}
+
+
 
 \section{Testing}
+
 
 
 
