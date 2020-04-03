@@ -74,14 +74,49 @@ Frames are implemented as objects with some polymorphic methods. This methods ar
 \texttt{get\_var}/\texttt{set\_var} for getting/setting variable from/to 
 corresponding frame, \texttt{get\_frame} to getting whole frame with corresponding 
 variables (in case of local frame this method returns frame from top of stack of 
-local frames). 
+local frames). Moreover in this module there is an implementation of data stack 
+and methods for this.
 
 \subsubsection{Error handling (\texttt{errors.py})}
 
-
+Errors solved through exceptions. For each error which may arise in interpret 
+there is class which inherits from python build-in objects Exception. This 
+classes also provides custom log massages.  
 
 \section{Testing}
 
+Last part of this project is script for auto testing of parser, interpret and 
+both of them together. 
+
+\subsection{Program flow}
+
+\subsubsection{Parameters hendling}
+
+First of all script for testing checks input parameters: if there set 
+\texttt{-{}-help} parameter, or if there is set custom interpret or parser 
+script, set path to \texttt{jexamxml.jar} and so one. Also there is check for 
+valid combinations of input parameters for script (\texttt{-{}-parse-only} can't 
+be combined with \texttt{-{}-int-only}).
+
+\subsubsection{Statiscis and HTML page}
+
+After parameters control follows generating of HTML header to standart output. 
+This header contains some CSS styles for beautifying page with statistics.  
+Later during execution of test cases result of test would be formatted and 
+written to corresponding string based on test success.   
+
+\subsubsection{Collecting of test casses}
+
+Before execution of tests, there is need to collect source files for each test 
+cases. If flag \texttt{-{}-recursive} is set, then given directory will be 
+discovered all files and subdirectories with \texttt{RecursiveIteratorIterator} 
+class, otherwise with using of \texttt{DirectoryIterator} only files in given 
+directory.
+
+Collected files grouped to dictionaries with valid extension as keys and relative
+path to test case (for example \texttt{[src] -> relative\_path.src}). Files 
+grouped based on relative path, so files that corresponds to one test must have 
+same path, otherwise assessment of test wouldn't be correct. 
 
 
 
