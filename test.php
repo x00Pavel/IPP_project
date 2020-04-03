@@ -174,7 +174,7 @@ $out_str_fault = "";
 
 if ($parse_only & !$int_only) {
     foreach ($array as $path => $files) {
-        shell_exec("php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <" . $files['src'] . " > tmp.my");
+        shell_exec("php7.4 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <" . $files['src'] . " > tmp.my");
         $return_code = shell_exec("echo $?");
         $refer_code = file_get_contents($files['rc'], false, NULL, 0);
         if ($refer_code == "") {
@@ -223,7 +223,7 @@ if ($parse_only & !$int_only) {
     shell_exec("rm tmp.my tmp.diff");
 } else if ($int_only & !$parse_only) {
     foreach ($array as $path => $files) {
-        $cmd = "python3.7 $int_script --source=" . $files['src'];
+        $cmd = "python3.8 $int_script --source=" . $files['src'];
         if (array_key_exists("in", $file)) {
             $cmd = $cmd . " --input=" . $files['in'];
         }
@@ -288,8 +288,8 @@ if ($parse_only & !$int_only) {
 }
 else if (!$int_only & !$parse_only){
     foreach ($array as $path => $files) {
-        $cmd = "php7.3 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <" . $files['src'];
-        $cmd = $cmd. " | python3.7 $int_script";
+        $cmd = "php7.4 $parse_script --stats=./tests/stats --comments --loc --labels --jumps <" . $files['src'];
+        $cmd = $cmd. " | python3.8 $int_script";
 
         if (array_key_exists("in", $files)) {
             $cmd = $cmd . " --input=" . $files['in'];
