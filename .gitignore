@@ -10,3 +10,11 @@ output.*
 input_file
 for_test.src
 __pycache__
+out.html
+docs/doc.aux
+docs/doc.fdb_latexmk
+docs/doc.fls
+docs/doc.log
+docs/doc.out
+docs/doc.pdf
+docs/doc.synctex.gz
