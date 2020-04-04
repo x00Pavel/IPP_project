@@ -38,7 +38,9 @@ then check if any other parameter is not used and writes description of script.
 \subsection{Modules in package}
 
 Interpret package contains 4 modules (\texttt{opcodes.py, other\_functions.py, 
-frames.py, errors.py}) for helding different parts in interpret.  
+frames.py, errors.py}) for helding different parts in interpret. This package 
+created to separate different parts of interpretation from each other and with 
+this to keep implementation as clear as I could do. 
 
 \subsubsection{Operation codes (\texttt{opcodes.py})}
 
@@ -88,9 +90,7 @@ classes also provides custom log massages.
 Last part of this project is script for auto testing of parser, interpret and 
 both of them together. 
 
-\subsection{Program flow}
-
-\subsubsection{Parameters hendling}
+\subsection{Parameters handling}
 
 First of all script for testing checks input parameters: if there set 
 \texttt{-{}-help} parameter, or if there is set custom interpret or parser 
@@ -98,14 +98,18 @@ script, set path to \texttt{jexamxml.jar} and so one. Also there is check for
 valid combinations of input parameters for script (\texttt{-{}-parse-only} can't 
 be combined with \texttt{-{}-int-only}).
 
-\subsubsection{Statiscis and HTML page}
+\subsection{Statistics and HTML page}
 
 After parameters control follows generating of HTML header to standart output. 
 This header contains some CSS styles for beautifying page with statistics.  
 Later during execution of test cases result of test would be formatted and 
-written to corresponding string based on test success.   
+written to corresponding string based on test success.
 
-\subsubsection{Collecting of test casses}
+After running all test cases header of table is generated and string with failed 
+tests is written to standart output followed by successful tests. Also statistics 
+of all failed and passed test is collected and inserted before table.
+
+\subsection{Collecting of test cases}
 
 Before execution of tests, there is need to collect source files for each test 
 cases. If flag \texttt{-{}-recursive} is set, then given directory will be 
@@ -118,6 +122,20 @@ path to test case (for example \texttt{[src] -> relative\_path.src}). Files
 grouped based on relative path, so files that corresponds to one test must have 
 same path, otherwise assessment of test wouldn't be correct. 
 
+\subsection{Test execution}
 
+There are three variants of testing mode: only parser (\texttt{-{}-parse-only} 
+flag), only interpret (\texttt{-{}-int-only} flag), both parser and interpret 
+(by default, no flags needed).   
+
+For testing only parser functionality temporary files is created while execution 
+where output of parser script is written. After that this file is compared with 
+reference file and this temporary file rewritten by next execution of script. 
+When tests are finished, then this file is automatically deleted.  
+
+In mode where both scripts (parser and interpret) are tested, execution creates 
+pipeline from execution parser and following interpretation with interpret script. 
+Output of execution is also written to temporary file, wich is overwritten with 
+each test and deleted in the end.
 
 \end{document}
