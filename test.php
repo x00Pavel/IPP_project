@@ -172,6 +172,33 @@ foreach ($files as $file) {
 $out_str_passed = "";
 $out_str_fault = "";
 
+function  passed_temp($src_file, $out_file, $refer_code){
+    global $out_str_passed;
+    global $passed;
+    global $ok;
+    $out_str_passed = $out_str_passed . "<tr>
+                            <td>" . $src_file . "<td/>
+                            <td>" . $out_file . "<td/>
+                            <td>" . $refer_code . "<td/>
+                            <td align=\"center\">$ok<td/>
+                            <td align=\"center\">$ok<td/>
+                        <tr/>";
+    $passed++;
+}
+
+function faled_temp($src_file, $out_file, $refer_code, $first, $second){
+    global $out_str_fault;
+    global $faled;
+    $out_str_fault = $out_str_fault . "<tr>
+                        <td>" . $src_file . "<td/>
+                        <td>" . $out_file . "<td/>
+                        <td>" . $refer_code . "<td/>
+                        <td align=\"center\">$first<td/>
+                        <td align=\"center\" >$second<td/>
+                    <tr/>";
+    $faled++;
+}
+
 if ($parse_only & !$int_only) {
     foreach ($array as $path => $files) {
         shell_exec("php7.4 $parse_script  <" . $files['src'] . " > tmp.my");
@@ -187,37 +214,16 @@ if ($parse_only & !$int_only) {
                 $out = shell_exec("java -jar $jexamxml tmp.my " . $out_file . " tmp.diff");
                 $xml_result = preg_match('/.*Two files are identical.*/', $out);
                 if ($xml_result) {
-                    $out_str_passed = $out_str_passed . "<tr>
-                        <td>" . $files['src'] . "<td/>
-                        <td>" . $out_file . "<td/>
-                        <td>" . $refer_code . "<td/>
-                        <td align=\"center\">$ok<td/>
-                        <td align=\"center\" >$ok<td/>
-                    <tr/>";
-                    $passed++;
+                    passed_temp($files['src'], $out_file, $refer_code);
                 } else {
-                    $out_str_fault = $out_str_fault . "<tr>
-                        <td>" . $files['src'] . "<td/>
-                        <td>" . $out_file . "<td/>
-                        <td>" . $refer_code . "<td/>
-                        <td align=\"center\">$ok<td/>
-                        <td align=\"center\" >$not_ok<td/>
-                    <tr/>";
-                    $faled++;
+                    faled_temp($files['src'], $out_file, $refer_code, $ok, $not_ok);
                 }
             } else {
                 $out_str_fault = $out_str_fault . "<b>No reference file (.out) for file " . $files['src'] . "</b><br/>\n";
                 $out_str_fault = $out_str_fault . "<hr size=5>\n";
             }
         } else {
-            $out_str_fault = $out_str_fault . "<tr>
-                <td>" . $files['src'] . "<td/>
-                <td>" . $out_file . "<td/>
-                <td>" . $refer_code . "<td/>
-                <td align=\"center\" >$not_ok<td/>
-                <td align=\"center\" >$not_ok<td/>
-            <tr/>";
-            $faled++;
+            faled_temp($files['src'], $out_file, $refer_code, $not_ok, $not_ok);
         }
     }
     shell_exec("rm tmp.my tmp.diff");
@@ -244,51 +250,23 @@ if ($parse_only & !$int_only) {
                     $out = shell_exec("diff $out_file tmp.txt");
                     $cmp_result = strcmp("", $out);
                     if ($cmp_result == 0) {
-                        $out_str_passed = $out_str_passed . "<tr>
-                            <td>" . $files['src'] . "<td/>
-                            <td>" . $out_file . "<td/>
-                            <td>" . $refer_code . "<td/>
-                            <td align=\"center\" align=\"center\">$ok<td/>
-                            <td align=\"center\">$ok<td/>
-                        <tr/>";
-                        $passed++;
+                        passed_temp($files['src'], $out_file, $refer_code);
                     } else {
-                        $out_str_fault = $out_str_fault . "<tr>
-                            <td>" . $files['src'] . "<td/>
-                            <td>" . $out_file . "<td/>
-                            <td>" . $refer_code . "<td/>
-                            <td align=\"center\">$ok<td/>
-                            <td align=\"center\" >$not_ok<td/>
-                        <tr/>";
-                        $faled++;
+                        faled_temp($files['src'], $out_file, $refer_code, $ok, $not_ok);
                     }
                 }
             } else {
-                $out_str_passed = $out_str_passed . "<tr>
-                            <td>" . $files['src'] . "<td/>
-                            <td> No reference output <td/>
-                            <td>" . $refer_code . "<td/>
-                            <td align=\"center\">$ok<td/>
-                            <td align=\"center\">$ok<td/>
-                        <tr/>";
-                $passed++;
+                passed_temp($files['src'], "No reference output", $refer_code);
             }
         } else {
-            $out_str_fault = $out_str_fault . "<tr>
-            <td>" . $files['src'] . "<td/>
-            <td>" . $out_file . "<td/>
-            <td>" . $refer_code . "<td/>
-            <td align=\"center\" >$not_ok<td/>
-            <td align=\"center\" >$not_ok<td/>
-            <tr/>";
-            $faled++;
+            faled_temp($files['src'], $out_file, $refer_code, $not_ok, $not_ok);
         }
     }
     shell_exec("rm tmp.txt");
 }
 else if (!$int_only & !$parse_only){
     foreach ($array as $path => $files) {
-        $cmd = "php7.4 $parse_script  <" . $files['src'] ." | python3.8 $int_script";
+        $cmd = "php7.4 $parse_script  <" . $files['src'] ." | python3.7 $int_script";
 
         if (array_key_exists("in", $files)) {
             $cmd = $cmd . " --input=" . $files['in'];
@@ -310,44 +288,16 @@ else if (!$int_only & !$parse_only){
                     $out = shell_exec("diff $out_file tmp.txt");
                     $cmp_result = strcmp("", $out);
                     if ($cmp_result == 0) {
-                        $out_str_passed = $out_str_passed . "<tr>
-                            <td>" . $files['src'] . "<td/>
-                            <td>" . $out_file . "<td/>
-                            <td>" . $refer_code . "<td/>
-                            <td align=\"center\">$ok<td/>
-                            <td align=\"center\">$ok<td/>
-                        <tr/>";
-                        $passed++;
+                        passed_temp($files['src'], $out_file, $refer_code);
                     } else {
-                        $out_str_fault = $out_str_fault . "<tr>
-                        <td>" . $files['src'] . "<td/>
-                            <td>" . $out_file . "<td/>
-                            <td>" . $refer_code . "<td/>
-                            <td align=\"center\">$ok<td/>
-                            <td align=\"center\" >$not_ok<td/>
-                        <tr/>";
-                        $faled++;
+                        faled_temp($files['src'], $out_file, $refer_code, $ok, $not_ok);
                     }
                 }
             } else {
-                $out_str_passed = $out_str_passed . "<tr>
-                            <td>" . $files['src'] . "<td/>
-                            <td> No reference output <td/>
-                            <td>" . $refer_code . "<td/>
-                            <td align=\"center\">$ok<td/>
-                            <td align=\"center\">$ok<td/>
-                        <tr/>";
-                $passed++;
+                passed_temp($files['src'], "No reference output", $refer_code);
             }
         } else {
-            $out_str_fault = $out_str_fault . "<tr>
-            <td>" . $files['src'] . "<td/>
-            <td>--<td/>
-            <td>" . $refer_code . "<td/>
-            <td align=\"center\" >$not_ok<td/>
-            <td align=\"center\" >$not_ok<td/>
-            <tr/>";
-            $faled++;
+            faled_temp($files['src'], $out_file, $refer_code, $not_ok, $not_ok);
         }
     }
     shell_exec("rm tmp.txt");
